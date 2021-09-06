@@ -1,6 +1,27 @@
 """
 This is a test.
 """
-def printstr():
-	test_string = "This is a test."
-	return test_string
+def equip_category():
+	equip_list = {
+		"SWORD": {
+			"Broadsword",
+			"Carving Sword"
+		},
+		"AXE": {
+			"Battleaxe",
+			"Greataxe",
+			"Halberd"
+		},
+		"MACE": {
+			"Mace",
+			"Heavy Mace",
+			"Morning Star"
+		},
+		"HAMMERS": {
+			"Hammer",
+			"Polehammer",
+			"Great Hammer"
+		}
+	}
+
+	return equip_list
