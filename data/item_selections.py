@@ -9,7 +9,8 @@ def equip_category():
 			"Dual Swords",
 			"Clarent Blade",
 			"Carving Sword",
-			"Galatine Pair"
+			"Galatine Pair",
+			"Kingmaker"
 		},
 		"Axe": {
 			"Battleaxe",
@@ -17,7 +18,8 @@ def equip_category():
 			"Halberd",
 			"Carrioncaller",
 			"Infernal Scythe",
-			"Bear Paws"
+			"Bear Paws",
+			"Realmbreaker"
 		},
 		"Mace": {
 			"Mace",
@@ -25,7 +27,8 @@ def equip_category():
 			"Morning Star",
 			"Bedrock Mace",
 			"Incubus Mace",
-			"Camlann Mace"
+			"Camlann Mace",
+			"Oathkeepers"
 		},
 		"Hammer": {
 			"Hammer",
@@ -33,7 +36,8 @@ def equip_category():
 			"Great Hammer",
 			"Tombhammer",
 			"Forge Hammers",
-			"Grovekeeper"
+			"Grovekeeper",
+			"Hand of Justice"
 		},
 		"Crossbow": {
 			"Crossbow",
@@ -41,12 +45,14 @@ def equip_category():
 			"Light Crossbow",
 			"Weeping Repeater",
 			"Boltcaster",
-			"Siegebow"
+			"Siegebow",
+			"Energy Shaper"
 		},
 		"Shield": {
 			"Sarcophagus",
 			"Caitiff Shield",
-			"Facebreaker"
+			"Facebreaker",
+			"Astral Aegis"
 		},
 		"Bow": {
 			"Bow",
@@ -54,7 +60,8 @@ def equip_category():
 			"Longbow",
 			"Whispering Bow",
 			"Wailing Bow",
-			"Bow of Badon"
+			"Bow of Badon",
+			"Mistpiercer"
 		},
 		"Spear": {
 			"Spear",
@@ -62,7 +69,8 @@ def equip_category():
 			"Glaive",
 			"Heron Spear",
 			"Spirithunter",
-			"Trinity Spear"
+			"Trinity Spear",
+			"Daybreaker"
 		},
 		"Nature Staff": {
 			"Nature Staff",
@@ -70,7 +78,8 @@ def equip_category():
 			"Wild Staff",
 			"Druidic Staff",
 			"Blight Staff",
-			"Rampant Staff"
+			"Rampant Staff",
+			"Ironroot Staff"
 		},
 		"Dagger": {
 			"Dagger",
@@ -78,7 +87,8 @@ def equip_category():
 			"Claws",
 			"Bloodletter",
 			"Black Hands",
-			"Deathgivers"
+			"Deathgivers",
+			"Bridled Fury"
 		},
 		"Quarterstaff": {
 			"Quarterstaff",
@@ -86,13 +96,15 @@ def equip_category():
 			"Double Bladed Staff",
 			"Black Monk Stave",
 			"Soulscythe",
-			"Staff of Balance"
+			"Staff of Balance",
+			"Grailseeker"
 		},
 		"Torch": {
 			"Torch",
 			"Mistcaller",
 			"Leering Cane",
-			"Cryptcandle"
+			"Cryptcandle",
+			"Sacred Scepter"
 		},
 		"Fire Staff": {
 			"Fire Staff",
@@ -127,7 +139,7 @@ def equip_category():
 			"Hoarfrost Staff",
 			"Icicle Staff",
 			"Permafrost Prism",
-			"Chillhowl"
+			"Chillhowl",
 		},
 		"Cursed Staff": {
 			"Cursed Staff",
