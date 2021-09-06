@@ -15,6 +15,20 @@ def loading_screen():
 	label.pack()
 
 
+def update_sub_cat(event):
+	global sub_cat_options_list, sub_dropdown
+
+	sub_cat_options_value.set("Item Type")
+	sub_dropdown["menu"].delete(0, "end")
+
+	selected_name = category_options_value.get()
+
+	# Insert list of new functions
+	sub_cat_options_list = items_list.get(selected_name)  # Refresh list
+	for name in sub_cat_options_list:
+		sub_dropdown["menu"].add_command(label=name, command=tk._setit(sub_cat_options_value, name))
+
+
 """
 Developer tools to test features during development.
 """
@@ -52,6 +66,7 @@ The following blocks of codes implements drop down menu systems for interactive 
 """
 # Item type selection
 items_list = item_selections.equip_category()
+category_options_selected = "None"
 
 category_options = items_list
 
@@ -59,22 +74,26 @@ category_options_list = list()
 for key in category_options:
 	category_options_list.append(key)  # Appends item types into a new list so the drop down menu works
 
-# Item type selection - sub category
-sub_cat_options = list()
-sub_cat_index = 0
-for key in range(len(items_list)):
-	values = items_list.values()
-	values_list = list(values)
-	# print(values_list[key])
-	sub_cat_options.append(values_list[key])
-	key += 1
+sub_cat_options_list = []  # Sub category items list
+
 
 # Set default key
-category_options_default = tk.StringVar()
-category_options_default.set(category_options_list[0])
+category_options_value = tk.StringVar()
+category_options_value.set(category_options_list[0])
+category_options_value_default = category_options_value
 
-category_options_dropdown = tk.OptionMenu(canvas, category_options_default, *category_options_list)
-category_options_dropdown.pack(pady=20)
+category_options_dropdown = tk.OptionMenu(canvas, category_options_value, *category_options_list, command=update_sub_cat)
+category_options_dropdown.pack(pady=10)
+
+# Sub category list
+sub_cat_options_value = tk.StringVar()
+sub_cat_options_value.set("Item Type")
+
+sub_cat_options_list = items_list.get(category_options_value.get())
+
+sub_dropdown = tk.OptionMenu(canvas, sub_cat_options_value, *sub_cat_options_list)
+sub_dropdown.pack(pady=10)
+
 
 root.resizable(False, False)  # Disable resizing app window
 root.mainloop()
