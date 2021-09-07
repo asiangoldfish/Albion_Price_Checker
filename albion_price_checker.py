@@ -13,19 +13,37 @@ from urllib.request import urlopen
 import os.path
 
 
-class Mylabels(tk.Label):
-	def __init__(self, master):
+class MyLabels(tk.Label):
+	def __init__(self, master=None, result_list=None, column=0, row=0):
 		self.master = master
-		self.labels_list = ["Item Archetype", "Item Type", "Tier", "Enchantment"]
-
+		self.result_list = result_list
+		self.column = column
+		self.row = row
+		self.search_labels_list = ["Item Archetype", "Item Type", "Tier", "Enchantment", "Quality", "City"]
+		self.result_labels_list = ["Name", "City", "Min Buy Price", "Min Buy Price Date", "Max Sell Price", "Max Sell Price Date"]
 
 	# Creates labels in a grid
-	def create_labels(self):
-		for i in range(len(self.labels_list)):
+	def search_labels(self):
+		for i in range(len(self.search_labels_list)):
 			label_var = tk.StringVar()
-			label_var.set(self.labels_list[i])
-			my_label = tk.Label(self.master, width=20, height=1, textvar=label_var)
+			label_var.set(self.search_labels_list[i])
+			my_label = tk.Label(self.master, width=20, height=1, textvar=label_var, bg="grey")
 			my_label.grid(column=0, row=i)
+
+	def result_labels(self):
+		for i in range(len(self.result_labels_list)):
+			label_var = tk.StringVar()
+			label_var.set(self.result_labels_list[i])
+			my_label = tk.Label(self.master, width=15, height=1, textvar=label_var, bg="orange")
+			my_label.grid(column=0, row=i)
+
+	def result_item_labels(self):
+		for i in range(len(self.result_list)):
+			label_var = tk.StringVar()
+			label_var.set(self.result_list[i])
+			my_label = tk.Label(self.master, width=15, height=1, textvar=label_var, bg="green")
+			my_label.grid(column=self.column, row=i)
+
 
 
 class OutputData:
@@ -34,9 +52,6 @@ class OutputData:
 		self.master = master
 		self.item_image_label = item_image_label
 		self.url = f"https://render.albiononline.com/v1/item/{self.item_id}.png?locale=en"
-
-	#def save_image(self):
-	#	urllib.request.urlretrieve(self.url, "img/item_img.png")
 
 
 def loading_screen(master, path):
@@ -64,9 +79,15 @@ def get_results():
 	Get the results based on the user input from OptionMenus. Creates an API get request as a formatted string.
 	Outputs the API return.
 	"""
-	global enchant_value, sub_cat_options_value, tier_value, result_canvas
+	global enchant_value, sub_cat_options_value, tier_value, result_canvas, quality_value, city_value
 
-	# Generate URI
+	"""
+	Generate URI
+	"""
+	def fetch_data(DataFrame, keyword):
+		"""Makes it quicker to fetch data from the pandas dataframe"""
+		return DataFrame.iloc[0][keyword]
+
 	base_url = "https://www.albion-online-data.com/api/v2/stats/Prices/"
 
 	# Item data
@@ -78,28 +99,23 @@ def get_results():
 	item_query = f"{item_id}.json"
 	tier_query = f"{tier}"
 
-	print(f"{base_url}{item_query}?locations=Caerleon")
+	# Retrieve and analyse data
 	pd.set_option("display.max_columns", 11)
 	df = pd.read_json(f"{base_url}{item_query}?locations=Caerleon&qualities=2")
-	print(df.iloc[0]["sell_price_min"])
-	# sell_price_min = df.loc[df.values[0]]
+	name = fetch_data(df, "item_id")
+	city = fetch_data(df, "city")
+	buy_price_min = fetch_data(df, "buy_price_min")
+	buy_price_min_date = fetch_data(df, "buy_price_min_date")
+	sell_price_max = fetch_data(df, "sell_price_max")
+	sell_price_max_date = fetch_data(df, "sell_price_max_date")
 
-	# Update item image label
-	def update_item_image():
-		global item_image_label, canvas
+	print(df)
 
-		# Save new image
-		url = f"https://render.albiononline.com/v1/item/{item_id}.png?locale=en"
-		save_image()
-		new_image = Image.open("img/item_img.png")
-		new_image = new_image.resize((100, 100), Image.ANTIALIAS)
-		new_image = ImageTk.PhotoImage(new_image)
-
-		# Update image
-		item_image_label.config(image=new_image)
-		item_image_label.image = new_image
-
-	update_item_image()
+	# Update result labels with item meta data
+	result_list = [name, city, buy_price_min, buy_price_min_date, sell_price_max, sell_price_max_date]
+	result_labels = MyLabels(master=result_canvas, result_list=result_list, column=1)
+	result_labels.result_item_labels()
+	update_item_image(item_id)  # Update item image label
 
 
 def reformat_json(obj):
@@ -133,9 +149,23 @@ def convert_name_to_id(item_name, item_tier, enchant_value):
 	return item_id
 
 
-def save_image():
-	url = "https://render.albiononline.com/v1/item/T4_MAIN_SWORD.png?locale=en"
+def save_image(item_id):
+	url = f"https://render.albiononline.com/v1/item/{item_id}.png?locale=en"
 	urllib.request.urlretrieve(url, "img/item_img.png")
+
+
+def update_item_image(item_id):
+	global item_image_label, canvas
+	save_image(item_id)
+	new_image = Image.open("img/item_img.png")
+	new_image = new_image.resize((100, 100), Image.ANTIALIAS)
+	new_image = ImageTk.PhotoImage(new_image)
+	# Update image
+	item_image_label.config(image=new_image)
+	item_image_label.image = new_image
+
+
+
 """
 Developer tools to test features during development.
 """
@@ -172,7 +202,7 @@ search_canvas.pack(side="left")
 
 # Canvas for results
 result_canvas = tk.Canvas(canvas)
-#result_canvas.pack(side="right", fill="y")
+result_canvas.pack(side="right")
 
 # Loading_screen
 if toggle_loading_screen:
@@ -198,8 +228,18 @@ for key in category_options:
 sub_cat_options_list = []  # Sub category items list
 
 # Make labels
-select_label = Mylabels(search_canvas)
-select_label.create_labels()
+select_label = MyLabels(search_canvas)
+select_label.search_labels()
+
+result_label = MyLabels(result_canvas)
+result_label.result_labels()
+
+result_item_list = ["Name", "City", "Min Buy Price", "Min Buy Price Date", "Max Sell Price", "Max Sell Price Date"]
+result_item_label = MyLabels(master=result_canvas, result_list=result_item_list, column=1)
+result_item_label.result_item_labels()
+
+# result_item_label = MyLabels(result_canvas, column=1)
+# result_item_label.result_labels_list(result_list=["Hello World!"])
 
 # Set default key
 category_options_value = tk.StringVar()
@@ -234,8 +274,23 @@ enchantment_list = ["None", "1", "2", "3"]
 enchant_dropdown = tk.OptionMenu(search_canvas, enchant_value, *enchantment_list)
 enchant_dropdown.grid(column=1, row=3, padx=5, pady=5)
 
+# Quality list
+quality_value = tk.StringVar()
+quality_value.set("Normal")
+quality_list = ["Normal", "Good", "Outstanding", "Excellent", "Masterpiece"]
+quality_dropdown = tk.OptionMenu(search_canvas, quality_value, *quality_list)
+quality_dropdown.grid(column=1, row=4, padx=5, pady=5)
+
+# City list
+city_value = tk.StringVar()
+city_value.set("Caerleon")
+city_list = ["Caerleon", "Lymhurst", "Bridgewatch", "Martlock", "Thetford", "FortSterling"]
+city_dropdown = tk.OptionMenu(search_canvas, city_value, *city_list)
+city_dropdown.grid(column=1, row=5, padx=5, pady=5)
+
+# Submit button
 submit_button = tk.Button(search_canvas, text="Submit Request", command=get_results)
-submit_button.grid(column=1, row=4, padx=5, pady=5)
+submit_button.grid(column=1, row=6, padx=5, pady=5)
 
 # image = ImageTk.PhotoImage(Image.open("img/item_img.png"))
 # image_label = tk.Label(canvas, image=image)
@@ -250,8 +305,8 @@ if not os.path.isfile("img/item_img.png"):  # Check if file exists
 image_file = Image.open("img/item_img.png")
 image_file = image_file.resize((100, 100), Image.ANTIALIAS)
 item_image = ImageTk.PhotoImage(image_file)  # This global variable is to bypass Python's garbage disposal
-item_image_label = tk.Label(master=canvas, image=item_image)
-item_image_label.pack()
+item_image_label = tk.Label(master=result_canvas, image=item_image)
+item_image_label.grid(column=3, row=0)
 
 root.resizable(False, False)  # Disable resizing app window
 root.mainloop()
