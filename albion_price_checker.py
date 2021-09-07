@@ -11,6 +11,22 @@ import requests
 from types import SimpleNamespace
 
 
+class Mylabels(tk.Label):
+	def __init__(self, master):
+		self.master = master
+		self.labels_list = ["Item Archetype", "Item Type", "Tier", "Enchantment"]
+
+
+	# Creates labels in a grid
+	def create_labels(self):
+		for i in range(len(self.labels_list)):
+			label_var = tk.StringVar()
+			label_var.set(self.labels_list[i])
+			my_label = tk.Label(self.master, width=20, height=1, textvar=label_var)
+			my_label.grid(column=0, row=i)
+			print(i)
+
+
 def loading_screen():
 	img = "img/albion_logo.png"
 	img_load = ImageTk.PhotoImage(Image.open(img))
@@ -134,6 +150,9 @@ for key in category_options:
 
 sub_cat_options_list = []  # Sub category items list
 
+# Make labels
+select_label = Mylabels(canvas)
+select_label.create_labels()
 
 # Set default key
 category_options_value = tk.StringVar()
@@ -141,7 +160,7 @@ category_options_value.set(category_options_list[0])
 category_options_value_default = category_options_value
 
 category_options_dropdown = tk.OptionMenu(canvas, category_options_value, *category_options_list, command=update_sub_cat)
-category_options_dropdown.pack(pady=10)
+category_options_dropdown.grid(column=1, row=0, padx=5, pady=5)
 
 # Sub category list
 sub_cat_options_value = tk.StringVar()
@@ -150,7 +169,7 @@ sub_cat_options_value.set("Broadsword")
 sub_cat_options_list = items_list.get(category_options_value.get())
 
 sub_dropdown = tk.OptionMenu(canvas, sub_cat_options_value, *sub_cat_options_list)
-sub_dropdown.pack(pady=10)
+sub_dropdown.grid(column=1, row=1, padx=5, pady=5)
 
 # Item Tier
 tier_value = tk.StringVar()
@@ -158,7 +177,7 @@ tier_value.set("4")
 tier_list = ["1", "2", "3", "4", "5", "6", "7", "8"]
 
 tier_dropdown = tk.OptionMenu(canvas, tier_value, *tier_list)
-tier_dropdown.pack(pady=10)
+tier_dropdown.grid(column=1, row=2, padx=5, pady=5)
 
 # Enchantment list
 enchant_value = tk.StringVar()
@@ -166,11 +185,10 @@ enchant_value.set("None")
 enchantment_list = ["None", "1", "2", "3"]
 
 enchant_dropdown = tk.OptionMenu(canvas, enchant_value, *enchantment_list)
-enchant_dropdown.pack(pady=10)
+enchant_dropdown.grid(column=1, row=3, padx=5, pady=5)
 
 submit_button = tk.Button(canvas, text="Submit Request", command=get_api)
-submit_button.pack(pady=10)
-
+submit_button.grid(column=1, row=4, padx=5, pady=5)
 
 root.resizable(False, False)  # Disable resizing app window
 root.mainloop()
