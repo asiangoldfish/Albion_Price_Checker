@@ -3,12 +3,13 @@ This program fetches data from the Albion Online Data Project and displays the p
 """
 import json
 import tkinter as tk
+import urllib.request
 from tkinter import ttk
 from PIL import ImageTk, Image
 from data import item_selections, Formatted_Items_List
 import pandas as pd
 import requests
-from types import SimpleNamespace
+from urllib.request import urlopen
 
 
 class Mylabels(tk.Label):
@@ -24,13 +25,22 @@ class Mylabels(tk.Label):
 			label_var.set(self.labels_list[i])
 			my_label = tk.Label(self.master, width=20, height=1, textvar=label_var)
 			my_label.grid(column=0, row=i)
-			print(i)
 
 
-def loading_screen():
-	img = "img/albion_logo.png"
-	img_load = ImageTk.PhotoImage(Image.open(img))
-	label = tk.Label(root, image=img_load)
+class OutputData:
+	def __init__(self, master, item_id, item_image_label):
+		self.item_id = item_id
+		self.master = master
+		self.item_image_label = item_image_label
+		self.url = f"https://render.albiononline.com/v1/item/{self.item_id}.png?locale=en"
+
+	#def save_image(self):
+	#	urllib.request.urlretrieve(self.url, "img/item_img.png")
+
+
+def loading_screen(master, path):
+	img_load = ImageTk.PhotoImage(Image.open(path))
+	label = tk.Label(master, image=img_load)
 	label.pack()
 
 
@@ -48,8 +58,12 @@ def update_sub_cat(event):
 		sub_dropdown["menu"].add_command(label=name, command=tk._setit(sub_cat_options_value, name))
 
 
-def get_api():
-	global enchant_value, sub_cat_options_value, tier_value
+def get_results():
+	"""
+	Get the results based on the user input from OptionMenus. Creates an API get request as a formatted string.
+	Outputs the API return.
+	"""
+	global enchant_value, sub_cat_options_value, tier_value, result_canvas
 
 	# Generate URI
 	base_url = "https://www.albion-online-data.com/api/v2/stats/Prices/"
@@ -64,12 +78,27 @@ def get_api():
 	tier_query = f"{tier}"
 
 	print(f"{base_url}{item_query}?locations=Caerleon")
-
-	response = requests.get(f"{base_url}{item_query}?locations=Caerleon&qualities=2")
 	pd.set_option("display.max_columns", 11)
 	df = pd.read_json(f"{base_url}{item_query}?locations=Caerleon&qualities=2")
 	print(df.iloc[0]["sell_price_min"])
 	# sell_price_min = df.loc[df.values[0]]
+
+	# Update item image label
+	def update_item_image():
+		global item_image_label, canvas
+
+		# Save new image
+		url = f"https://render.albiononline.com/v1/item/{item_id}.png?locale=en"
+		urllib.request.urlretrieve(url, "img/item_img.png")
+		new_image = Image.open("img/item_img.png")
+		new_image = new_image.resize((100, 100), Image.ANTIALIAS)
+		new_image = ImageTk.PhotoImage(new_image)
+
+		# Update image
+		item_image_label.config(image=new_image)
+		item_image_label.image = new_image
+
+	update_item_image()
 
 
 def reformat_json(obj):
@@ -108,6 +137,9 @@ Developer tools to test features during development.
 """
 toggle_loading_screen = False
 
+"""
+Application settings
+"""
 # Application window
 root = tk.Tk()
 root.title("Albion  Price Checker")
@@ -126,6 +158,17 @@ canvas = tk.Canvas(root)
 canvas.pack(expand="yes", fill="both")
 canvas_image_load = ImageTk.PhotoImage(file="img/albion_bg.png")
 canvas.create_image(0, 0, image=canvas_image_load, anchor="nw")
+
+"""
+Widgets
+"""
+# Canvas for searching
+search_canvas = tk.Canvas(canvas)
+search_canvas.pack(side="left")
+
+# Canvas for results
+result_canvas = tk.Canvas(canvas)
+#result_canvas.pack(side="right", fill="y")
 
 # Loading_screen
 if toggle_loading_screen:
@@ -151,7 +194,7 @@ for key in category_options:
 sub_cat_options_list = []  # Sub category items list
 
 # Make labels
-select_label = Mylabels(canvas)
+select_label = Mylabels(search_canvas)
 select_label.create_labels()
 
 # Set default key
@@ -159,7 +202,7 @@ category_options_value = tk.StringVar()
 category_options_value.set(category_options_list[0])
 category_options_value_default = category_options_value
 
-category_options_dropdown = tk.OptionMenu(canvas, category_options_value, *category_options_list, command=update_sub_cat)
+category_options_dropdown = tk.OptionMenu(search_canvas, category_options_value, *category_options_list, command=update_sub_cat)
 category_options_dropdown.grid(column=1, row=0, padx=5, pady=5)
 
 # Sub category list
@@ -168,7 +211,7 @@ sub_cat_options_value.set("Broadsword")
 
 sub_cat_options_list = items_list.get(category_options_value.get())
 
-sub_dropdown = tk.OptionMenu(canvas, sub_cat_options_value, *sub_cat_options_list)
+sub_dropdown = tk.OptionMenu(search_canvas, sub_cat_options_value, *sub_cat_options_list)
 sub_dropdown.grid(column=1, row=1, padx=5, pady=5)
 
 # Item Tier
@@ -176,7 +219,7 @@ tier_value = tk.StringVar()
 tier_value.set("4")
 tier_list = ["1", "2", "3", "4", "5", "6", "7", "8"]
 
-tier_dropdown = tk.OptionMenu(canvas, tier_value, *tier_list)
+tier_dropdown = tk.OptionMenu(search_canvas, tier_value, *tier_list)
 tier_dropdown.grid(column=1, row=2, padx=5, pady=5)
 
 # Enchantment list
@@ -184,11 +227,24 @@ enchant_value = tk.StringVar()
 enchant_value.set("None")
 enchantment_list = ["None", "1", "2", "3"]
 
-enchant_dropdown = tk.OptionMenu(canvas, enchant_value, *enchantment_list)
+enchant_dropdown = tk.OptionMenu(search_canvas, enchant_value, *enchantment_list)
 enchant_dropdown.grid(column=1, row=3, padx=5, pady=5)
 
-submit_button = tk.Button(canvas, text="Submit Request", command=get_api)
+submit_button = tk.Button(search_canvas, text="Submit Request", command=get_results)
 submit_button.grid(column=1, row=4, padx=5, pady=5)
+
+# image = ImageTk.PhotoImage(Image.open("img/item_img.png"))
+# image_label = tk.Label(canvas, image=image)
+# image_label.pack()
+# print(image_label)
+# print(image)
+
+# Global variables
+image_file = Image.open("img/item_img.png")
+image_file = image_file.resize((100, 100), Image.ANTIALIAS)
+item_image = ImageTk.PhotoImage(image_file)  # This global variable is to bypass Python's garbage disposal
+item_image_label = tk.Label(master=canvas, image=item_image)
+item_image_label.pack()
 
 root.resizable(False, False)  # Disable resizing app window
 root.mainloop()
