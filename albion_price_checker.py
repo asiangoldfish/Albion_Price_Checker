@@ -10,6 +10,7 @@ from data import item_selections, Formatted_Items_List
 import pandas as pd
 import requests
 from urllib.request import urlopen
+import os.path
 
 
 class Mylabels(tk.Label):
@@ -89,7 +90,7 @@ def get_results():
 
 		# Save new image
 		url = f"https://render.albiononline.com/v1/item/{item_id}.png?locale=en"
-		urllib.request.urlretrieve(url, "img/item_img.png")
+		save_image()
 		new_image = Image.open("img/item_img.png")
 		new_image = new_image.resize((100, 100), Image.ANTIALIAS)
 		new_image = ImageTk.PhotoImage(new_image)
@@ -132,6 +133,9 @@ def convert_name_to_id(item_name, item_tier, enchant_value):
 	return item_id
 
 
+def save_image():
+	url = "https://render.albiononline.com/v1/item/T4_MAIN_SWORD.png?locale=en"
+	urllib.request.urlretrieve(url, "img/item_img.png")
 """
 Developer tools to test features during development.
 """
@@ -239,7 +243,10 @@ submit_button.grid(column=1, row=4, padx=5, pady=5)
 # print(image_label)
 # print(image)
 
-# Global variables
+# Item image label
+if not os.path.isfile("img/item_img.png"):  # Check if file exists
+	save_image()
+
 image_file = Image.open("img/item_img.png")
 image_file = image_file.resize((100, 100), Image.ANTIALIAS)
 item_image = ImageTk.PhotoImage(image_file)  # This global variable is to bypass Python's garbage disposal
