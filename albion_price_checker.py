@@ -20,7 +20,7 @@ class MyLabels(tk.Label):
 		self.column = column
 		self.row = row
 		self.search_labels_list = ["Item Archetype", "Item Type", "Tier", "Enchantment", "Quality", "City"]
-		self.result_labels_list = ["Name", "City", "Min Buy Price", "Min Buy Price Date", "Max Sell Price", "Max Sell Price Date"]
+		self.result_labels_list = ["item_id", "City", "Min Buy Price", "Min Buy Price Date", "Max Sell Price", "Max Sell Price Date"]
 
 	# Creates labels in a grid
 	def search_labels(self):
@@ -43,15 +43,6 @@ class MyLabels(tk.Label):
 			label_var.set(self.result_list[i])
 			my_label = tk.Label(self.master, width=15, height=1, textvar=label_var, bg="green")
 			my_label.grid(column=self.column, row=i)
-
-
-
-class OutputData:
-	def __init__(self, master, item_id, item_image_label):
-		self.item_id = item_id
-		self.master = master
-		self.item_image_label = item_image_label
-		self.url = f"https://render.albiononline.com/v1/item/{self.item_id}.png?locale=en"
 
 
 def loading_screen(master, path):
@@ -79,8 +70,7 @@ def get_results():
 	Get the results based on the user input from OptionMenus. Creates an API get request as a formatted string.
 	Outputs the API return.
 	"""
-	global enchant_value, sub_cat_options_value, tier_value, result_canvas, quality_value, city_value
-
+	global enchant_value, sub_cat_options_value, tier_value, result_canvas, quality_value, city_value, quality_list
 	"""
 	Generate URI
 	"""
@@ -88,20 +78,46 @@ def get_results():
 		"""Makes it quicker to fetch data from the pandas dataframe"""
 		return DataFrame.iloc[0][keyword]
 
+	def quality_index(quality_list, selected_quality):
+		quality_list = quality_list
+		selected_quality = selected_quality
+		index = 0
+		for i in range(len(quality_list)):
+			if quality_list[i] == selected_quality:
+				index = i
+		return index
+
 	base_url = "https://www.albion-online-data.com/api/v2/stats/Prices/"
 
 	# Item data
-	item_id = convert_name_to_id(sub_cat_options_value, tier_value, enchant_value)
+	try:
+		item_id = convert_name_to_id(sub_cat_options_value, tier_value, enchant_value)
+	except ValueError as error:
+		item_id = "none"
+
 	enchantment_level = enchant_value.get()
 	tier = tier_value.get()
+	quality = quality_index(quality_list, quality_value.get())
+	city = city_value.get()
 
 	# Query
+	if item_id == "none":  # Checks if the user entered the correct item name
+		error_label = error_msg()
+		return 0
+
 	item_query = f"{item_id}.json"
 	tier_query = f"{tier}"
+	quality_query = f"{quality}"
+	city_query = f"{city}"
+
 
 	# Retrieve and analyse data
 	pd.set_option("display.max_columns", 11)
-	df = pd.read_json(f"{base_url}{item_query}?locations=Caerleon&qualities=2")
+	send_url = f"{base_url}{item_query}?locations={city_query}&qualities={quality_query}"
+	df = pd.read_json(send_url)  # Makes a pandas dataframe/datatable
+
+
+	# Fetched variables from data frame
 	name = fetch_data(df, "item_id")
 	city = fetch_data(df, "city")
 	buy_price_min = fetch_data(df, "buy_price_min")
@@ -109,10 +125,17 @@ def get_results():
 	sell_price_max = fetch_data(df, "sell_price_max")
 	sell_price_max_date = fetch_data(df, "sell_price_max_date")
 
-	print(df)
+	# Check if data is invalid
+	invalid_data = "No Data"
+	if buy_price_min == 0:
+		buy_price_min = invalid_data
+		buy_price_min_date = invalid_data
+	if sell_price_max == 0:
+		sell_price_max = invalid_data
+		sell_price_max_date = invalid_data
 
 	# Update result labels with item meta data
-	result_list = [name, city, buy_price_min, buy_price_min_date, sell_price_max, sell_price_max_date]
+	result_list = [item_id, city, buy_price_min, buy_price_min_date, sell_price_max, sell_price_max_date]
 	result_labels = MyLabels(master=result_canvas, result_list=result_list, column=1)
 	result_labels.result_item_labels()
 	update_item_image(item_id)  # Update item image label
@@ -133,7 +156,7 @@ def convert_name_to_id(item_name, item_tier, enchant_value):
 
 	# Convert tier into rarity name, i.e. "Expert's" instead of T5
 	output_tier = ""
-	tier_ranking = ["Beginner's", "Novice's", "Journeyman's", "Adept's", "Expert's", "Master's", "Grandmaster's", "Elder's"]
+	tier_ranking = item_selections.tier_ranking()
 	for tier_id in range(len(tier_list)):
 		if tier_id + 1 == int(item_tier):
 			output_tier = tier_ranking[tier_id]
@@ -165,6 +188,16 @@ def update_item_image(item_id):
 	item_image_label.image = new_image
 
 
+def error_msg():
+	global result_canvas
+
+	# Create new error window
+	error_root = tk.Tk()
+	error_root.title("ERROR!")
+	error_root.iconbitmap("img/ao_bitmap_logo.ico")
+
+	my_label = tk.Label(error_root, text="ERROR! Please Check Item Info", width=35, height=3)
+	my_label.pack(padx=0, pady=0)
 
 """
 Developer tools to test features during development.
@@ -188,7 +221,7 @@ center_y = int(screen_height/2 - 390 / 2)  # Get screen center y
 root.geometry(f'{700}x{390}+{center_x}+{center_y}')  # Place app window
 
 # Initial app window size
-canvas = tk.Canvas(root)
+canvas = tk.Canvas(root, highlightthickness=0)
 canvas.pack(expand="yes", fill="both")
 canvas_image_load = ImageTk.PhotoImage(file="img/albion_bg.png")
 canvas.create_image(0, 0, image=canvas_image_load, anchor="nw")
@@ -196,13 +229,23 @@ canvas.create_image(0, 0, image=canvas_image_load, anchor="nw")
 """
 Widgets
 """
+# treasure_bg_width = 206
+# treasure_bg_height = 320
+treasure_bg = Image.open("img/treasure_bg.png")
+treasure_bg = treasure_bg.resize((412, 640), Image.ANTIALIAS)
+treasure_bg = ImageTk.PhotoImage(treasure_bg)
+
+highlightbackground = "#e6c8ae"
+
 # Canvas for searching
-search_canvas = tk.Canvas(canvas)
-search_canvas.pack(side="left")
+search_canvas = tk.Canvas(canvas, highlightthickness=1, highlightbackground=highlightbackground)
+search_canvas.pack(side="left", fill="both")
+search_canvas.create_image(0, 0, image=treasure_bg, anchor="nw")
 
 # Canvas for results
-result_canvas = tk.Canvas(canvas)
-result_canvas.pack(side="right")
+result_canvas = tk.Canvas(canvas, highlightthickness=1, highlightbackground=highlightbackground)
+result_canvas.pack(side="right", fill="y")
+result_canvas.create_image(0, 0, image=treasure_bg, anchor="nw")
 
 # Loading_screen
 if toggle_loading_screen:
@@ -284,7 +327,7 @@ quality_dropdown.grid(column=1, row=4, padx=5, pady=5)
 # City list
 city_value = tk.StringVar()
 city_value.set("Caerleon")
-city_list = ["Caerleon", "Lymhurst", "Bridgewatch", "Martlock", "Thetford", "FortSterling"]
+city_list = item_selections.cities_list()
 city_dropdown = tk.OptionMenu(search_canvas, city_value, *city_list)
 city_dropdown.grid(column=1, row=5, padx=5, pady=5)
 
@@ -292,18 +335,12 @@ city_dropdown.grid(column=1, row=5, padx=5, pady=5)
 submit_button = tk.Button(search_canvas, text="Submit Request", command=get_results)
 submit_button.grid(column=1, row=6, padx=5, pady=5)
 
-# image = ImageTk.PhotoImage(Image.open("img/item_img.png"))
-# image_label = tk.Label(canvas, image=image)
-# image_label.pack()
-# print(image_label)
-# print(image)
-
-# Item image label
+# Item thumbnail
 if not os.path.isfile("img/item_img.png"):  # Check if file exists
-	save_image()
+	save_image("T4_MAIN_SWORD")
 
 image_file = Image.open("img/item_img.png")
-image_file = image_file.resize((100, 100), Image.ANTIALIAS)
+image_file = image_file.resize((75, 75), Image.ANTIALIAS)
 item_image = ImageTk.PhotoImage(image_file)  # This global variable is to bypass Python's garbage disposal
 item_image_label = tk.Label(master=result_canvas, image=item_image)
 item_image_label.grid(column=3, row=0)

@@ -1,6 +1,16 @@
 """
-This is a test.
+This document contains dictionaries of items in the game and lists of their attributes.
 """
+
+
+def tier_ranking():
+	tiers = ["Beginner's", "Novice's", "Journeyman's", "Adept's", "Expert's", "Master's", "Grandmaster's", "Elder's"]
+	return tiers
+
+def cities_list():
+	cities = ["BlackMarket", "Caerleon", "Lymhurst", "Bridgewatch", "Martlock", "Thetford", "FortSterling"]
+	return cities
+
 def equip_category():
 	equip_list = {
 		"Sword": {
