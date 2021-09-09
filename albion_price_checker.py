@@ -102,7 +102,7 @@ def get_results():
 
 	# Query
 	if item_id == "none":  # Checks if the user entered the correct item name
-		error_label = error_msg()
+		error_msg()
 		return 0
 
 	item_query = f"{item_id}.json"
@@ -110,12 +110,10 @@ def get_results():
 	quality_query = f"{quality}"
 	city_query = f"{city}"
 
-
 	# Retrieve and analyse data
 	pd.set_option("display.max_columns", 11)
 	send_url = f"{base_url}{item_query}?locations={city_query}&qualities={quality_query}"
 	df = pd.read_json(send_url)  # Makes a pandas dataframe/datatable
-
 
 	# Fetched variables from data frame
 	name = fetch_data(df, "item_id")
@@ -181,7 +179,7 @@ def update_item_image(item_id):
 	global item_image_label, canvas
 	save_image(item_id)
 	new_image = Image.open("img/item_img.png")
-	new_image = new_image.resize((100, 100), Image.ANTIALIAS)
+	new_image = new_image.resize((75, 75), Image.ANTIALIAS)
 	new_image = ImageTk.PhotoImage(new_image)
 	# Update image
 	item_image_label.config(image=new_image)
@@ -342,7 +340,8 @@ if not os.path.isfile("img/item_img.png"):  # Check if file exists
 image_file = Image.open("img/item_img.png")
 image_file = image_file.resize((75, 75), Image.ANTIALIAS)
 item_image = ImageTk.PhotoImage(image_file)  # This global variable is to bypass Python's garbage disposal
-item_image_label = tk.Label(master=result_canvas, image=item_image)
+item_image_label = tk.Label(master=result_canvas, image=item_image, highlightthickness=0)
+item_image_label.config(highlightthickness=0)
 item_image_label.grid(column=3, row=0)
 
 root.resizable(False, False)  # Disable resizing app window
