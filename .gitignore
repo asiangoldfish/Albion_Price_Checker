@@ -1,2 +1,4 @@
-img/item_img.png
-venv/*
+venv/
+_pycache_/
+.ipynb_checkpoints
+.idea
