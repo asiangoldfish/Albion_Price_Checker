@@ -4,23 +4,22 @@ This program fetches data from the Albion Online Data Project and displays the p
 import json
 import tkinter as tk
 import urllib.request
-from tkinter import ttk
 from PIL import ImageTk, Image
 from data import item_selections, Formatted_Items_List
 import pandas as pd
-import requests
-from urllib.request import urlopen
 import os.path
 
 
 class MyLabels(tk.Label):
 	def __init__(self, master=None, result_list=None, column=0, row=0):
+		super().__init__()
 		self.master = master
 		self.result_list = result_list
 		self.column = column
 		self.row = row
 		self.search_labels_list = ["Item Archetype", "Item Type", "Tier", "Enchantment", "Quality", "City"]
-		self.result_labels_list = ["Name", "City", "Min Buy Price", "Min Buy Price Date", "Max Sell Price", "Max Sell Price Date"]
+		self.result_labels_list = ["item_id", "City", "Min Buy Price", "Min Buy Price Date", "Max Sell Price",
+								   "Max Sell Price Date"]
 
 	# Creates labels in a grid
 	def search_labels(self):
@@ -45,13 +44,80 @@ class MyLabels(tk.Label):
 			my_label.grid(column=self.column, row=i)
 
 
+class ContentCanvas(tk.Canvas):
+	def __init__(self, master, image=None, highlightthickness=None, highlightbackground=None):
+		super().__init__(master=master, highlightthickness=highlightthickness, highlightbackground=highlightbackground)
+		self.master = master  # Widget to parent to
+		self.image = image  # Background image
+		# self.layout_method = layout_method  # How to layout (pack, grid or place)
 
-class OutputData:
-	def __init__(self, master, item_id, item_image_label):
+	def layout_canvas(self, layout_method=None, side=None, fill=None, column=0, row=0, padx=0, pady=0, expand="no"):
+		"""
+		Layout the canvas. This method is similar to tkinter's pack method. Raises an error message
+		if none or incorrect layout method has been specified as argument.
+
+		:param layout_method: "Pack", "grid"
+		:param side: "right" or "left".
+		:param fill: "x", "y" or "both".
+		:param column Column of the grid to place the widget in.
+		:param row Row of the grid to place the widget in.
+		:param padx Padding in x direction.
+		:param pady Padding in y direction.
+		:param expand Specify if the widget should expand as child widgets is added or alter in size.
+		"""
+		if layout_method is None:
+			error_message = "This method requires the layout method to be specified: pack, grid"
+			raise ValueError(error_message)
+		elif layout_method == "pack":
+			self.pack(expand=expand, side=side, fill=fill, padx=padx, pady=pady)
+		elif layout_method == "grid":
+			self.grid(column=column, row=row, padx=padx, pady=pady)
+		else:
+			error_message = "Incorrect layout method has been specified. Please choose pack, grid"
+			raise ValueError(error_message)
+
+	def canvas_title(self):
+		"""
+		Use this method to create a title label for the canvas
+		:return:
+		"""
+		return None
+
+
+class ItemThumbnail(tk.Label):
+	"""
+	Hello world!
+	"""
+	def __init__(self, master, item_id="T4_MAIN_SWORD", size_x=75, size_y=75, image=None):
+		super().__init__(master=master)
+		self.image = image
 		self.item_id = item_id
-		self.master = master
-		self.item_image_label = item_image_label
-		self.url = f"https://render.albiononline.com/v1/item/{self.item_id}.png?locale=en"
+		self.size_x = size_x
+		self.size_y = size_y
+
+	def update_image(self, update=False):
+		"""
+		Updates the item thumbnail. If the file doesn't exist on disk, then creates a new file with default thumbnail.
+		The item in the default thumbnail is self.item_id. If update=True, then also updates the image thumbnail
+		in the label.
+
+		:param update Bool. If true, then updates the item thumbnail.
+		:return: Boolean
+		"""
+		url = f"https://render.albiononline.com/v1/item/{self.item_id}.png?locale=en"
+		url_write = urllib.request.urlretrieve(url, "img/item_img.png")  # Writes to disk
+
+		# Checks if the image on disk does not exists or update is enabled
+		# if not os.path.isfile("img/item_img.png") or update:
+		# 	url_write()
+
+		new_image = Image.open("img/item_img.png")
+		new_image = new_image.resize((self.size_x, self.size_y), Image.ANTIALIAS)  # Resize image to fit current format
+		new_image = ImageTk.PhotoImage(new_image)  # Converts to a format recognized by Tkinter
+		self.config(image=new_image)  # Updates image on the label
+		self.image = new_image
+
+		return new_image
 
 
 def loading_screen(master, path):
@@ -79,43 +145,71 @@ def get_results():
 	Get the results based on the user input from OptionMenus. Creates an API get request as a formatted string.
 	Outputs the API return.
 	"""
-	global enchant_value, sub_cat_options_value, tier_value, result_canvas, quality_value, city_value
-
+	global enchant_value, sub_cat_options_value, tier_value, result_canvas, quality_value, city_value, quality_list
 	"""
 	Generate URI
 	"""
-	def fetch_data(DataFrame, keyword):
+
+	def fetch_data(dataframe, keyword):
 		"""Makes it quicker to fetch data from the pandas dataframe"""
-		return DataFrame.iloc[0][keyword]
+		return dataframe.iloc[0][keyword]
+
+	def quality_index(index_quality_list, selected_quality):
+		selected_quality = selected_quality
+		index = 0
+		for i in range(len(index_quality_list)):
+			if index_quality_list[i] == selected_quality:
+				index = i
+		return index
 
 	base_url = "https://www.albion-online-data.com/api/v2/stats/Prices/"
 
 	# Item data
-	item_id = convert_name_to_id(sub_cat_options_value, tier_value, enchant_value)
-	enchantment_level = enchant_value.get()
-	tier = tier_value.get()
+	try:
+		item_id = convert_name_to_id(sub_cat_options_value, tier_value, enchant_value)
+	except ValueError:
+		item_id = "none"
+
+	quality = quality_index(quality_list, quality_value.get())
+	city = city_value.get()
 
 	# Query
+	if item_id == "none":  # Checks if the user entered the correct item name
+		error_msg()
+		return 0
+
 	item_query = f"{item_id}.json"
-	tier_query = f"{tier}"
+	quality_query = f"{quality}"
+	city_query = f"{city}"
 
 	# Retrieve and analyse data
 	pd.set_option("display.max_columns", 11)
-	df = pd.read_json(f"{base_url}{item_query}?locations=Caerleon&qualities=2")
-	name = fetch_data(df, "item_id")
+	send_url = f"{base_url}{item_query}?locations={city_query}&qualities={quality_query}"
+	df = pd.read_json(send_url)  # Makes a pandas dataframe/datatable
+
+	# Fetched variables from data frame
 	city = fetch_data(df, "city")
 	buy_price_min = fetch_data(df, "buy_price_min")
 	buy_price_min_date = fetch_data(df, "buy_price_min_date")
 	sell_price_max = fetch_data(df, "sell_price_max")
 	sell_price_max_date = fetch_data(df, "sell_price_max_date")
 
-	print(df)
+	# Check if data is invalid
+	invalid_data = "No Data"
+	if buy_price_min == 0:
+		buy_price_min = invalid_data
+		buy_price_min_date = invalid_data
+	if sell_price_max == 0:
+		sell_price_max = invalid_data
+		sell_price_max_date = invalid_data
 
 	# Update result labels with item meta data
-	result_list = [name, city, buy_price_min, buy_price_min_date, sell_price_max, sell_price_max_date]
+	result_list = [item_id, city, buy_price_min, buy_price_min_date, sell_price_max, sell_price_max_date]
 	result_labels = MyLabels(master=result_canvas, result_list=result_list, column=1)
 	result_labels.result_item_labels()
-	update_item_image(item_id)  # Update item image label
+
+
+# update_item_image(item_id)  # Update item image label
 
 
 def reformat_json(obj):
@@ -124,46 +218,83 @@ def reformat_json(obj):
 	return text
 
 
-def convert_name_to_id(item_name, item_tier, enchant_value):
+def convert_name_to_id(item_name, item_tier, item_enchant_value):
 	global tier_list
 	# Fetch input from user
 	user_input = item_name.get()
 	item_tier = item_tier.get()
-	enchant_value = enchant_value.get()
+	item_enchant_value = item_enchant_value.get()
 
 	# Convert tier into rarity name, i.e. "Expert's" instead of T5
 	output_tier = ""
-	tier_ranking = ["Beginner's", "Novice's", "Journeyman's", "Adept's", "Expert's", "Master's", "Grandmaster's", "Elder's"]
+	tier_ranking = item_selections.tier_ranking()
 	for tier_id in range(len(tier_list)):
 		if tier_id + 1 == int(item_tier):
 			output_tier = tier_ranking[tier_id]
 
 	item_label = f"{output_tier} {user_input}"  # Combines the item name like seen in-game
-	item_id_from_dic = list(Formatted_Items_List.items_list.keys())[list(Formatted_Items_List.items_list.values()).index(item_label)]  # Retrieves the item_id. More info found here: https://stackoverflow.com/a/13149770
+	item_id_from_dic = list(Formatted_Items_List.items_list.keys())[
+		list(Formatted_Items_List.items_list.values()).index(
+			item_label)]  # Retrieves the item_id. More info found here: https://stackoverflow.com/a/13149770
 
-	if enchant_value == "None":
+	if item_enchant_value == "None":
 		item_id = f"{item_id_from_dic}"
 	else:
-		item_id = f"{item_id_from_dic}@{enchant_value}"
+		item_id = f"{item_id_from_dic}@{item_enchant_value}"
 
 	return item_id
 
 
-def save_image(item_id):
-	url = f"https://render.albiononline.com/v1/item/{item_id}.png?locale=en"
-	urllib.request.urlretrieve(url, "img/item_img.png")
+# def save_image(item_id):
+# 	url = f"https://render.albiononline.com/v1/item/{item_id}.png?locale=en"
+# 	urllib.request.urlretrieve(url, "img/item_img.png")
 
 
-def update_item_image(item_id):
-	global item_image_label, canvas
-	save_image(item_id)
-	new_image = Image.open("img/item_img.png")
-	new_image = new_image.resize((100, 100), Image.ANTIALIAS)
-	new_image = ImageTk.PhotoImage(new_image)
-	# Update image
-	item_image_label.config(image=new_image)
-	item_image_label.image = new_image
+# def update_item_image(item_id, create_label=True, new_label=tk.Label()):
+# 	"""
+# 	Create or update the item thumbnail in the result canvas. The image is stored on disk.
+#
+# 	:param item_id: ID of the item to show on the label. The default is a T4 sword.
+# 	:param existing_label: If label already exists, then only update the label.
+# 	:return:
+# 	"""
+# 	global canvas
+# 	# Config vars
+# 	image_column = 3
+#
+# 	# Store new image
+# 	save_image(item_id)  # Searches for the item thumbnail and stores it on disk
+# 	new_image = Image.open("img/item_img.png")
+# 	new_image = new_image.resize((75, 75), Image.ANTIALIAS)
+# 	new_image = ImageTk.PhotoImage(new_image)
+# 	# item_image_label = existing_label
+#
+# 	if not create_label:  # Check if the image label already exists
+# 		# Create label
+# 		item_image_label = tk.Label(result_canvas, image=new_image, highlightborder=0, bg=0)
+# 		item_image_label.grid(column=image_column, row=0)
+#
+# 		return item_image_label
+# 	else:
+# 		# Update image
+# 		item_image_label.config(image=new_image)
+# 		item_image_label.image = new_image
+#
+# 		return item_image_label
+#
+# 	return item_image_label
 
+
+def error_msg():
+	global result_canvas
+
+	# Create new error window
+	error_root = tk.Tk()
+	error_root.title("ERROR!")
+	error_root.iconbitmap("img/ao_bitmap_logo.ico")
+
+	my_label = tk.Label(error_root, text="ERROR! Please Check Item Info", width=35, height=3)
+	my_label.pack(padx=0, pady=0)
 
 
 """
@@ -182,33 +313,44 @@ root.iconbitmap("img/ao_bitmap_logo.ico")
 # Calculate user screen center
 screen_width = root.winfo_screenwidth()  # Get monitor width
 screen_height = root.winfo_screenheight()  # Get monitor height
-center_x = int(screen_width/2 - 700 / 2)  # Get screen center x
-center_y = int(screen_height/2 - 390 / 2)  # Get screen center y
+center_x = int(screen_width / 2 - 700 / 2)  # Get screen center x
+center_y = int(screen_height / 2 - 390 / 2)  # Get screen center y
 
 root.geometry(f'{700}x{390}+{center_x}+{center_y}')  # Place app window
 
 # Initial app window size
-canvas = tk.Canvas(root)
-canvas.pack(expand="yes", fill="both")
-canvas_image_load = ImageTk.PhotoImage(file="img/albion_bg.png")
-canvas.create_image(0, 0, image=canvas_image_load, anchor="nw")
+bg_canvas = ContentCanvas(root, highlightthickness=0)
+bg_canvas.layout_canvas("pack", expand="yes", fill="both")
+bg_canvas_image_load = ImageTk.PhotoImage(file="img/albion_bg.png")
+bg_canvas.create_image(0, 0, image=bg_canvas_image_load, anchor="nw")
 
 """
 Widgets
 """
+# Image background of the search and result canvases
+treasure_bg_width = 206
+treasure_bg_height = 320
+treasure_bg = Image.open("img/treasure_bg.png")
+treasure_bg = treasure_bg.resize((treasure_bg_width*2, treasure_bg_height*2), Image.ANTIALIAS)
+treasure_bg = ImageTk.PhotoImage(treasure_bg)
+
+highlightbackground = "#e6c8ae"
+
 # Canvas for searching
-search_canvas = tk.Canvas(canvas)
-search_canvas.pack(side="left")
+search_canvas = ContentCanvas(bg_canvas, highlightthickness=1, highlightbackground=highlightbackground)
+search_canvas.layout_canvas("pack", side="left", fill="y")
+search_canvas.create_image(0, 0, image=treasure_bg, anchor="nw")
 
 # Canvas for results
-result_canvas = tk.Canvas(canvas)
-result_canvas.pack(side="right")
+result_canvas = ContentCanvas(bg_canvas, highlightthickness=1, highlightbackground=highlightbackground)
+result_canvas.layout_canvas("pack", side="right", fill="y")
+result_canvas.create_image(0, 0, image=treasure_bg, anchor="nw")
 
 # Loading_screen
 if toggle_loading_screen:
 	loading_logo = "img/albion_.png"
-	loading_logo_converted = ImageTk.PhotoImage(file=loading_logo, master=canvas)
-	loading_label = tk.Label(canvas, image=loading_logo_converted)
+	loading_logo_converted = ImageTk.PhotoImage(file=loading_logo)
+	loading_label = tk.Label(bg_canvas, image=loading_logo_converted)
 	loading_label.pack()
 	loading_label.after(3000, loading_label.destroy)
 
@@ -225,8 +367,6 @@ category_options_list = list()
 for key in category_options:
 	category_options_list.append(key)  # Appends item types into a new list so the drop down menu works
 
-sub_cat_options_list = []  # Sub category items list
-
 # Make labels
 select_label = MyLabels(search_canvas)
 select_label.search_labels()
@@ -238,15 +378,14 @@ result_item_list = ["Name", "City", "Min Buy Price", "Min Buy Price Date", "Max 
 result_item_label = MyLabels(master=result_canvas, result_list=result_item_list, column=1)
 result_item_label.result_item_labels()
 
-# result_item_label = MyLabels(result_canvas, column=1)
-# result_item_label.result_labels_list(result_list=["Hello World!"])
 
-# Set default key
+# Category list
 category_options_value = tk.StringVar()
 category_options_value.set(category_options_list[0])
 category_options_value_default = category_options_value
 
-category_options_dropdown = tk.OptionMenu(search_canvas, category_options_value, *category_options_list, command=update_sub_cat)
+category_options_dropdown = tk.OptionMenu(search_canvas, category_options_value, *category_options_list,
+										  command=update_sub_cat)
 category_options_dropdown.grid(column=1, row=0, padx=5, pady=5)
 
 # Sub category list
@@ -284,7 +423,7 @@ quality_dropdown.grid(column=1, row=4, padx=5, pady=5)
 # City list
 city_value = tk.StringVar()
 city_value.set("Caerleon")
-city_list = ["Caerleon", "Lymhurst", "Bridgewatch", "Martlock", "Thetford", "FortSterling"]
+city_list = item_selections.cities_list()
 city_dropdown = tk.OptionMenu(search_canvas, city_value, *city_list)
 city_dropdown.grid(column=1, row=5, padx=5, pady=5)
 
@@ -292,21 +431,11 @@ city_dropdown.grid(column=1, row=5, padx=5, pady=5)
 submit_button = tk.Button(search_canvas, text="Submit Request", command=get_results)
 submit_button.grid(column=1, row=6, padx=5, pady=5)
 
-# image = ImageTk.PhotoImage(Image.open("img/item_img.png"))
-# image_label = tk.Label(canvas, image=image)
-# image_label.pack()
-# print(image_label)
-# print(image)
+# Item thumbnail
+item_thumbnail = ItemThumbnail(master=result_canvas)
+item_thumbnail.update_image()
+item_thumbnail.grid(column=1)
 
-# Item image label
-if not os.path.isfile("img/item_img.png"):  # Check if file exists
-	save_image()
-
-image_file = Image.open("img/item_img.png")
-image_file = image_file.resize((100, 100), Image.ANTIALIAS)
-item_image = ImageTk.PhotoImage(image_file)  # This global variable is to bypass Python's garbage disposal
-item_image_label = tk.Label(master=result_canvas, image=item_image)
-item_image_label.grid(column=3, row=0)
 
 root.resizable(False, False)  # Disable resizing app window
 root.mainloop()
