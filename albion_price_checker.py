@@ -7,6 +7,7 @@ import urllib.request
 from PIL import ImageTk, Image
 from data import item_selections, Formatted_Items_List
 import pandas as pd
+import os.path
 
 
 class MyLabels(tk.Label):
@@ -80,9 +81,58 @@ class ContentCanvas(tk.Canvas):
 
 
 class ItemThumbnail(tk.Label):
-	def __init__(self):
-		super().__init__()
+	"""
+	Hello world!
+	"""
+	def __init__(self, master, is_existing=True):
+		super().__init__(master=master)
 
+
+	@staticmethod
+	def save_image():
+		"""
+		Checks if the image file of the item already exists on disk. If not, then creates a new image that acts
+		as a place holder.
+
+		:return: bool
+		"""
+		# Checks if the image on disk does not exists
+		if not os.path.isfile("img/item_img.png"):
+			url = f"https://render.albiononline.com/v1/item/T4_MAIN_SWORD.png?locale=en"
+			urllib.request.urlretrieve(url, "img/item_img.png")
+			return False
+		else:
+			return True
+
+	def update_image(self, item_id, label_to_update):
+		"""
+		Create or update the item thumbnail in the result canvas. The image is stored on disk.
+
+		:param item_id: ID of the item to show on the label. The default is a T4 sword.
+		:param label_to_update: If label already exists, then only update the label.
+		:return:
+		"""
+		# Store new image
+		self.save_image(item_id)  # Searches for the item thumbnail and stores it on disk
+		new_image = Image.open("img/item_img.png")
+		new_image = new_image.resize((75, 75), Image.ANTIALIAS)
+		new_image = ImageTk.PhotoImage(new_image)
+		# item_image_label = label_to_update
+
+		if not create_label:  # Check if the image label already exists
+			# Create label
+			item_image_label = tk.Label(result_canvas, image=new_image, highlightborder=0, bg=0)
+			item_image_label.grid(column=image_column, row=0)
+
+			return item_image_label
+		else:
+			# Update image
+			item_image_label.config(image=new_image)
+			item_image_label.image = new_image
+
+			return item_image_label
+
+		return item_image_label
 
 
 def loading_screen(master, path):
@@ -210,44 +260,44 @@ def convert_name_to_id(item_name, item_tier, item_enchant_value):
 	return item_id
 
 
-def save_image(item_id):
-	url = f"https://render.albiononline.com/v1/item/{item_id}.png?locale=en"
-	urllib.request.urlretrieve(url, "img/item_img.png")
+# def save_image(item_id):
+# 	url = f"https://render.albiononline.com/v1/item/{item_id}.png?locale=en"
+# 	urllib.request.urlretrieve(url, "img/item_img.png")
 
 
-def update_item_image(item_id, create_label=True, new_label=tk.Label()):
-	"""
-	Create or update the item thumbnail in the result canvas. The image is stored on disk.
-
-	:param item_id: ID of the item to show on the label. The default is a T4 sword.
-	:param existing_label: If label already exists, then only update the label.
-	:return:
-	"""
-	global canvas
-	# Config vars
-	image_column = 3
-
-	# Store new image
-	save_image(item_id)  # Searches for the item thumbnail and stores it on disk
-	new_image = Image.open("img/item_img.png")
-	new_image = new_image.resize((75, 75), Image.ANTIALIAS)
-	new_image = ImageTk.PhotoImage(new_image)
-	# item_image_label = existing_label
-
-	if not create_label:  # Check if the image label already exists
-		# Create label
-		item_image_label = tk.Label(result_canvas, image=new_image, highlightborder=0, bg=0)
-		item_image_label.grid(column=image_column, row=0)
-
-		return item_image_label
-	else:
-		# Update image
-		item_image_label.config(image=new_image)
-		item_image_label.image = new_image
-
-		return item_image_label
-
-	return item_image_label
+# def update_item_image(item_id, create_label=True, new_label=tk.Label()):
+# 	"""
+# 	Create or update the item thumbnail in the result canvas. The image is stored on disk.
+#
+# 	:param item_id: ID of the item to show on the label. The default is a T4 sword.
+# 	:param existing_label: If label already exists, then only update the label.
+# 	:return:
+# 	"""
+# 	global canvas
+# 	# Config vars
+# 	image_column = 3
+#
+# 	# Store new image
+# 	save_image(item_id)  # Searches for the item thumbnail and stores it on disk
+# 	new_image = Image.open("img/item_img.png")
+# 	new_image = new_image.resize((75, 75), Image.ANTIALIAS)
+# 	new_image = ImageTk.PhotoImage(new_image)
+# 	# item_image_label = existing_label
+#
+# 	if not create_label:  # Check if the image label already exists
+# 		# Create label
+# 		item_image_label = tk.Label(result_canvas, image=new_image, highlightborder=0, bg=0)
+# 		item_image_label.grid(column=image_column, row=0)
+#
+# 		return item_image_label
+# 	else:
+# 		# Update image
+# 		item_image_label.config(image=new_image)
+# 		item_image_label.image = new_image
+#
+# 		return item_image_label
+#
+# 	return item_image_label
 
 
 def error_msg():
@@ -397,6 +447,10 @@ submit_button = tk.Button(search_canvas, text="Submit Request", command=get_resu
 submit_button.grid(column=1, row=6, padx=5, pady=5)
 
 # Item thumbnail
+item_thumbnail = ItemThumbnail(master=result_canvas)
+item_thumbnail.save_image()
+item_thumbnail.grid(column=1)
+
 # my_label= tk.Label()
 # my_label = update_item_image(new_label=my_label)
 
