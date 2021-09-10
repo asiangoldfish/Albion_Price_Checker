@@ -77,6 +77,10 @@ class ContentCanvas(tk.Canvas):
 			raise ValueError(error_message)
 
 	def canvas_title(self):
+		"""
+		Use this method to create a title label for the canvas
+		:return:
+		"""
 		return None
 
 
@@ -84,55 +88,60 @@ class ItemThumbnail(tk.Label):
 	"""
 	Hello world!
 	"""
-	def __init__(self, master, is_existing=True):
+	def __init__(self, master, item_id="T4_MAIN_SWORD", size_x=75, size_y=75, image=None):
 		super().__init__(master=master)
+		self.image = image
+		self.item_id = item_id
+		self.size_x = size_x
+		self.size_y = size_y
 
-
-	@staticmethod
-	def save_image():
+	def update_image(self, update=False):
 		"""
-		Checks if the image file of the item already exists on disk. If not, then creates a new image that acts
-		as a place holder.
+		Updates the item thumbnail. If the file doesn't exist on disk, then creates a new file with default thumbnail.
+		The item in the default thumbnail is self.item_id. If update=True, then also updates the image thumbnail
+		in the label.
 
-		:return: bool
+		:param update Bool. If true, then updates the item thumbnail.
+		:return: Boolean
 		"""
-		# Checks if the image on disk does not exists
-		if not os.path.isfile("img/item_img.png"):
-			url = f"https://render.albiononline.com/v1/item/T4_MAIN_SWORD.png?locale=en"
-			urllib.request.urlretrieve(url, "img/item_img.png")
-			return False
-		else:
-			return True
+		url = f"https://render.albiononline.com/v1/item/{self.item_id}.png?locale=en"
+		url_write = urllib.request.urlretrieve(url, "img/item_img.png")  # Writes to disk
 
-	def update_image(self, item_id, label_to_update):
-		"""
-		Create or update the item thumbnail in the result canvas. The image is stored on disk.
+		# Checks if the image on disk does not exists or update is enabled
+		if not os.path.isfile("img/item_img.png") or update:
+			url_write()
 
-		:param item_id: ID of the item to show on the label. The default is a T4 sword.
-		:param label_to_update: If label already exists, then only update the label.
-		:return:
-		"""
-		# Store new image
-		self.save_image(item_id)  # Searches for the item thumbnail and stores it on disk
 		new_image = Image.open("img/item_img.png")
-		new_image = new_image.resize((75, 75), Image.ANTIALIAS)
-		new_image = ImageTk.PhotoImage(new_image)
-		# item_image_label = label_to_update
+		new_image = new_image.resize((self.size_x, self.size_y), Image.ANTIALIAS)  # Resize image to fit current format
+		new_image = ImageTk.PhotoImage(new_image)  # Converts to a format recognized by Tkinter
+		self.config(image=new_image)  # Updates image on the label
+		self.image = new_image
 
-		if not create_label:  # Check if the image label already exists
-			# Create label
-			item_image_label = tk.Label(result_canvas, image=new_image, highlightborder=0, bg=0)
-			item_image_label.grid(column=image_column, row=0)
+		return new_image
 
-			return item_image_label
-		else:
-			# Update image
-			item_image_label.config(image=new_image)
-			item_image_label.image = new_image
 
-			return item_image_label
-
-		return item_image_label
+#	def layout_label(self, item_id, global_var=None):
+#		"""
+#		Create or update the item thumbnail in the result canvas. The image is stored on disk.
+#		Searches for a global variable storing the label to update. This makes it easier to look
+#		for the label to update, although with limited usability
+#
+#		:param global_var The label to globally search for.
+#		:param item_id ID of the item to show on the label. The default is a T4 sword.
+#		:return:
+#		"""
+#		# Store new image
+#		self.update_image(update=True)  # Updates thumbnail
+#
+#			# Create label
+#			item_image_label = tk.Label(result_canvas, image=new_image, highlightborder=0, bg=0)
+#			item_image_label.grid(column=image_column, row=0)
+#
+#			return item_image_label
+#
+#			return item_image_label
+#
+#		return item_image_label
 
 
 def loading_screen(master, path):
@@ -448,21 +457,9 @@ submit_button.grid(column=1, row=6, padx=5, pady=5)
 
 # Item thumbnail
 item_thumbnail = ItemThumbnail(master=result_canvas)
-item_thumbnail.save_image()
+item_thumbnail.update_image()
 item_thumbnail.grid(column=1)
 
-# my_label= tk.Label()
-# my_label = update_item_image(new_label=my_label)
-
-# if not os.path.isfile("img/item_img.png"):  # Check if file exists
-# 	save_image("T4_MAIN_SWORD")
-#
-# image_file = Image.open("img/item_img.png")
-# image_file = image_file.resize((75, 75), Image.ANTIALIAS)
-# item_image = ImageTk.PhotoImage(image_file)  # This global variable is to bypass Python's garbage disposal
-# item_image_label = tk.Label(master=result_canvas, image=item_image, highlightthickness=0)
-# item_image_label.config(highlightthickness=0)
-# item_image_label.grid(column=3, row=0)
 
 root.resizable(False, False)  # Disable resizing app window
 root.mainloop()
