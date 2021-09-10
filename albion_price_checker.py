@@ -108,8 +108,8 @@ class ItemThumbnail(tk.Label):
 		url_write = urllib.request.urlretrieve(url, "img/item_img.png")  # Writes to disk
 
 		# Checks if the image on disk does not exists or update is enabled
-		if not os.path.isfile("img/item_img.png") or update:
-			url_write()
+		# if not os.path.isfile("img/item_img.png") or update:
+		# 	url_write()
 
 		new_image = Image.open("img/item_img.png")
 		new_image = new_image.resize((self.size_x, self.size_y), Image.ANTIALIAS)  # Resize image to fit current format
@@ -120,37 +120,13 @@ class ItemThumbnail(tk.Label):
 		return new_image
 
 
-#	def layout_label(self, item_id, global_var=None):
-#		"""
-#		Create or update the item thumbnail in the result canvas. The image is stored on disk.
-#		Searches for a global variable storing the label to update. This makes it easier to look
-#		for the label to update, although with limited usability
-#
-#		:param global_var The label to globally search for.
-#		:param item_id ID of the item to show on the label. The default is a T4 sword.
-#		:return:
-#		"""
-#		# Store new image
-#		self.update_image(update=True)  # Updates thumbnail
-#
-#			# Create label
-#			item_image_label = tk.Label(result_canvas, image=new_image, highlightborder=0, bg=0)
-#			item_image_label.grid(column=image_column, row=0)
-#
-#			return item_image_label
-#
-#			return item_image_label
-#
-#		return item_image_label
-
-
 def loading_screen(master, path):
 	img_load = ImageTk.PhotoImage(Image.open(path))
 	label = tk.Label(master, image=img_load)
 	label.pack()
 
 
-def update_sub_cat():
+def update_sub_cat(event):
 	global sub_cat_options_list, sub_dropdown
 
 	sub_cat_options_value.set("Item Type")
@@ -373,7 +349,7 @@ result_canvas.create_image(0, 0, image=treasure_bg, anchor="nw")
 # Loading_screen
 if toggle_loading_screen:
 	loading_logo = "img/albion_.png"
-	loading_logo_converted = ImageTk.PhotoImage(file=loading_logo, master=canvas)
+	loading_logo_converted = ImageTk.PhotoImage(file=loading_logo)
 	loading_label = tk.Label(bg_canvas, image=loading_logo_converted)
 	loading_label.pack()
 	loading_label.after(3000, loading_label.destroy)
@@ -403,7 +379,7 @@ result_item_label = MyLabels(master=result_canvas, result_list=result_item_list,
 result_item_label.result_item_labels()
 
 
-# Set default key
+# Category list
 category_options_value = tk.StringVar()
 category_options_value.set(category_options_list[0])
 category_options_value_default = category_options_value
