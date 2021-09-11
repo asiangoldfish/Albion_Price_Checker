@@ -88,36 +88,41 @@ class ItemThumbnail(tk.Label):
 	"""
 	Hello world!
 	"""
-	def __init__(self, master, item_id="T4_MAIN_SWORD", size_x=75, size_y=75, image=None):
+	def __init__(self, master, size_x=75, size_y=75, image=None):
 		super().__init__(master=master)
 		self.image = image
-		self.item_id = item_id
 		self.size_x = size_x
 		self.size_y = size_y
 
-	def update_image(self, update=False):
+	def update_image(self, item_id="T4_MAIN_SWORD", update=False):
 		"""
 		Updates the item thumbnail. If the file doesn't exist on disk, then creates a new file with default thumbnail.
-		The item in the default thumbnail is self.item_id. If update=True, then also updates the image thumbnail
-		in the label.
 
 		:param update Bool. If true, then updates the item thumbnail.
 		:return: Boolean
 		"""
-		url = f"https://render.albiononline.com/v1/item/{self.item_id}.png?locale=en"
-		url_write = urllib.request.urlretrieve(url, "img/item_img.png")  # Writes to disk
+		# Checks if the file exists on disk
+		if not os.path.isfile("img/item_img.png"):
+			update == True
 
-		# Checks if the image on disk does not exists or update is enabled
-		# if not os.path.isfile("img/item_img.png") or update:
-		# 	url_write()
+		# Writes the new item thumbnail to disk
+		if update == True:
+			url = f"https://render.albiononline.com/v1/item/{item_id}.png?locale=en"
+			url_write = urllib.request.urlretrieve(url, "img/item_img.png")  # Writes to disk
 
+
+		# Updates the item thumbnail
 		new_image = Image.open("img/item_img.png")
 		new_image = new_image.resize((self.size_x, self.size_y), Image.ANTIALIAS)  # Resize image to fit current format
-		new_image = ImageTk.PhotoImage(new_image)  # Converts to a format recognized by Tkinter
+		new_image = ImageTk.PhotoImage(new_image)
 		self.config(image=new_image)  # Updates image on the label
 		self.image = new_image
 
 		return new_image
+
+
+def center_window(root):
+	root.eval('tk::PlaceWindow . center') # Center windows
 
 
 def loading_screen(master, path):
@@ -145,7 +150,7 @@ def get_results():
 	Get the results based on the user input from OptionMenus. Creates an API get request as a formatted string.
 	Outputs the API return.
 	"""
-	global enchant_value, sub_cat_options_value, tier_value, result_canvas, quality_value, city_value, quality_list
+	global enchant_value, sub_cat_options_value, tier_value, result_canvas, quality_value, city_value, quality_list, item_thumbnail
 	"""
 	Generate URI
 	"""
@@ -209,7 +214,9 @@ def get_results():
 	result_labels.result_item_labels()
 
 
-# update_item_image(item_id)  # Update item image label
+	# Update item image label
+	item_image = item_thumbnail
+	item_image.update_image(update=True, item_id=item_id)
 
 
 def reformat_json(obj):
@@ -245,48 +252,7 @@ def convert_name_to_id(item_name, item_tier, item_enchant_value):
 	return item_id
 
 
-# def save_image(item_id):
-# 	url = f"https://render.albiononline.com/v1/item/{item_id}.png?locale=en"
-# 	urllib.request.urlretrieve(url, "img/item_img.png")
-
-
-# def update_item_image(item_id, create_label=True, new_label=tk.Label()):
-# 	"""
-# 	Create or update the item thumbnail in the result canvas. The image is stored on disk.
-#
-# 	:param item_id: ID of the item to show on the label. The default is a T4 sword.
-# 	:param existing_label: If label already exists, then only update the label.
-# 	:return:
-# 	"""
-# 	global canvas
-# 	# Config vars
-# 	image_column = 3
-#
-# 	# Store new image
-# 	save_image(item_id)  # Searches for the item thumbnail and stores it on disk
-# 	new_image = Image.open("img/item_img.png")
-# 	new_image = new_image.resize((75, 75), Image.ANTIALIAS)
-# 	new_image = ImageTk.PhotoImage(new_image)
-# 	# item_image_label = existing_label
-#
-# 	if not create_label:  # Check if the image label already exists
-# 		# Create label
-# 		item_image_label = tk.Label(result_canvas, image=new_image, highlightborder=0, bg=0)
-# 		item_image_label.grid(column=image_column, row=0)
-#
-# 		return item_image_label
-# 	else:
-# 		# Update image
-# 		item_image_label.config(image=new_image)
-# 		item_image_label.image = new_image
-#
-# 		return item_image_label
-#
-# 	return item_image_label
-
-
 def error_msg():
-	global result_canvas
 
 	# Create new error window
 	error_root = tk.Tk()
@@ -295,6 +261,7 @@ def error_msg():
 
 	my_label = tk.Label(error_root, text="ERROR! Please Check Item Info", width=35, height=3)
 	my_label.pack(padx=0, pady=0)
+	center_window(error_root)
 
 
 """
@@ -311,12 +278,9 @@ root.title("Albion  Price Checker")
 root.iconbitmap("img/ao_bitmap_logo.ico")
 
 # Calculate user screen center
-screen_width = root.winfo_screenwidth()  # Get monitor width
-screen_height = root.winfo_screenheight()  # Get monitor height
-center_x = int(screen_width / 2 - 700 / 2)  # Get screen center x
-center_y = int(screen_height / 2 - 390 / 2)  # Get screen center y
 
-root.geometry(f'{700}x{390}+{center_x}+{center_y}')  # Place app window
+root.geometry(f"{700}x{390}") # Set window dimensions
+center_window(root) # Center window
 
 # Initial app window size
 bg_canvas = ContentCanvas(root, highlightthickness=0)
