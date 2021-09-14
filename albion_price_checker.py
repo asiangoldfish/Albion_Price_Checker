@@ -8,6 +8,7 @@ from PIL import ImageTk, Image
 from data import item_selections, Formatted_Items_List
 import pandas as pd
 import os.path
+from datetime import datetime
 
 
 class MyLabels(tk.Label):
@@ -103,13 +104,12 @@ class ItemThumbnail(tk.Label):
 		"""
 		# Checks if the file exists on disk
 		if not os.path.isfile("img/item_img.png"):
-			update == True
+			update = True
 
 		# Writes the new item thumbnail to disk
-		if update == True:
+		if update:
 			url = f"https://render.albiononline.com/v1/item/{item_id}.png?locale=en"
 			url_write = urllib.request.urlretrieve(url, "img/item_img.png")  # Writes to disk
-
 
 		# Updates the item thumbnail
 		new_image = Image.open("img/item_img.png")
@@ -121,8 +121,8 @@ class ItemThumbnail(tk.Label):
 		return new_image
 
 
-def center_window(root):
-	root.eval('tk::PlaceWindow . center') # Center windows
+def center_window(master):
+	master.eval('tk::PlaceWindow . center')  # Center windows
 
 
 def loading_screen(master, path):
@@ -217,6 +217,14 @@ def get_results():
 	# Update item image label
 	item_image = item_thumbnail
 	item_image.update_image(update=True, item_id=item_id)
+
+
+def time_dif(to_time, from_time=None):
+	"""
+	Gets the time difference between system or input time, to another time.
+
+	:param str to_time:
+	"""
 
 
 def reformat_json(obj):
