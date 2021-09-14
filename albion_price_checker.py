@@ -155,7 +155,35 @@ class ApiPrice:
 		2. Check if the item id is valid. Send an error message to user if not.
 		3. Return the item_id
 		"""
+		# Gets the values of the user inputs
+		input_name = self.item_type.get()
+		input_tier = self.tier_value.get()
+		input_enchantment = self.enchant_value.get()
 
+		# Declares vars for each component that will be used to find the item_id
+		item_name = ""
+		item_enchantment = 0
+
+		"""In the following code blocks, the item_tier will be identified"""
+
+		# Convert tier into rarity name, i.e. "Expert's" instead of T5
+		tiers_list = json.loads(config.get("Item Data", "tier_list"))  # Gets tier list from config file
+		tiers_ranking = json.loads(config.get("Item Data", "tier_ranking"))  # List of the name of each tier
+
+		for i in range(len(tiers_ranking)):
+			if input_tier == tiers_list[i]:
+				item_tier = tiers_ranking[i]
+
+		"""In the following code blocks, the item_name will be identified"""
+
+		item_label = f"{item_tier} {input_name}"  # Combines the item name like seen in-game
+
+		# Based on item tier and input name, get the item_id w/o enchantment from the dict in Formatted_Items_List.py
+		item_from_dict = list(Formatted_Items_List.items_list.keys())[
+			list(Formatted_Items_List.items_list.values()).index(
+				item_label)]  # Retrieves the item_id. More info found here: https://stackoverflow.com/a/13149770
+
+		print(item_from_dict)
 
 	@staticmethod
 	def fetch_data(dataframe, keyword):
@@ -524,6 +552,7 @@ quality_value = quality_value # Item Quality
 city = city_value  # Filter what city to search in
 
 api_call = ApiPrice(item_archetype, item_type, tier_value, enchant_value, quality_value, city)
+api_call.get_item_id()
 
 
 root.resizable(False, False)  # Disable resizing app window
