@@ -27,7 +27,7 @@ class MyLabels(tk.Label):
 		self.result_list = result_list
 		self.column = column
 		self.row = row
-		self.search_labels_list = ["Item Archetype", "Item Type", "Tier", "Enchantment", "Quality", "City"]
+		self.search_labels_list = json.loads(config.get("Other Labels Default", "search_labels_list"))
 		self.result_labels_list = json.loads(config.get("API Results", "result_labels_list"))
 
 	# Creates labels in a grid
@@ -108,6 +108,7 @@ class ItemThumbnail(tk.Label):
 		Updates the item thumbnail. If the file doesn't exist on disk, then creates a new file with default thumbnail.
 
 		:param update Bool. If true, then updates the item thumbnail.
+		:param str item_id: Default item_id value
 		:return: Boolean
 		"""
 		# Checks if the file exists on disk
@@ -131,16 +132,19 @@ class ItemThumbnail(tk.Label):
 
 class ApiPrice:
 	def __init__(self, item_archetype, item_type, tier_value, enchant_value, quality_value, city):
-		self.item_archetype = item_archetype
-		self.item_type = item_type
-		self.tier_value = tier_value
-		self.enchant_value = enchant_value
-		self.quality_value = quality_value
-		self.city = city
+		# Variables needed to find the id of the user selected item
+		self.item_archetype = item_archetype.get()
+		self.item_type = item_type.get()
+		self.tier_value = tier_value.get()
+		self.enchant_value = enchant_value.get()
+		self.quality_value = quality_value.get()
 
+		# Base URL for the API call
 		self.base_url = "https://www.albion-online-data.com/api/v2/stats/Prices/"  # URL of the API without queries
-		self.quality = self.quality_index(quality_list, quality_value.get())
-		self.city = city_value.get()
+		self.city = city.get()  # Filter what city to search the item in
+
+		# Variables used to populate the result labels.
+		self.item_id = self.get_item_id()
 
 	def get_item_id(self):
 		"""
@@ -156,13 +160,11 @@ class ApiPrice:
 		3. Return the item_id
 		"""
 		# Gets the values of the user inputs
-		input_name = self.item_type.get()
-		input_tier = self.tier_value.get()
-		input_enchantment = self.enchant_value.get()
+		input_name = self.item_type
+		input_tier = self.tier_value
+		input_enchant = self.enchant_value
 
 		# Declares vars for each component that will be used to find the item_id
-		item_name = ""
-		item_enchantment = 0
 
 		"""In the following code blocks, the item_tier will be identified"""
 
@@ -176,6 +178,10 @@ class ApiPrice:
 
 		"""In the following code blocks, the item_name will be identified"""
 
+		# Throws an error message if user has not selected an item type
+		if input_name == json.loads(config.get("Other Labels Default", "search_labels_list"))[1]:
+			error_msg(text="ERROR! Please Check Item Info")
+
 		item_label = f"{item_tier} {input_name}"  # Combines the item name like seen in-game
 
 		# Based on item tier and input name, get the item_id w/o enchantment from the dict in Formatted_Items_List.py
@@ -183,7 +189,13 @@ class ApiPrice:
 			list(Formatted_Items_List.items_list.values()).index(
 				item_label)]  # Retrieves the item_id. More info found here: https://stackoverflow.com/a/13149770
 
-		print(item_from_dict)
+		# Add enchantment level to the item_id
+		if input_enchant == "None":
+			item_id = item_from_dict
+			return item_id
+		else:
+			item_id = f"{item_from_dict}@{input_enchant}"
+			return item_id
 
 	@staticmethod
 	def fetch_data(dataframe, keyword):
@@ -196,26 +208,27 @@ class ApiPrice:
 		"""
 		return dataframe.iloc[0][keyword]
 
-	@staticmethod
-	def quality_index(index_quality_list, selected_quality):
-		"""Converts the item quality index to its literal name."""
-		index = 0
-		for i in range(len(index_quality_list)):
-			if index_quality_list[i] == selected_quality:
-				index = i
-		return index
+	def data_from_api(self):
+		"""
+		1. Put together the url for the API call
+		2. Make the api call and store it in a variable
+		3. Make the dataframe with pandas and use the read_json method
+		4. Use the self.fetch_data method to obtain various data that we can use to populate
+			labels down the line
+		"""
+		# Gets the quality ID of the quality name
+		item_quality_list = json.loads(config.get("Item Data", "item_quality"))
+		item_quality_id = item_quality_list.index(self.quality_value)
+		print(item_quality_id)
+		print(type(item_quality_id))
 
-	@staticmethod
-	def is_item_id_valid(item_id):
-		"""Idiot proof for programmers to ensure that the correct item_id was passed"""
-		try:
-			item_id = convert_name_to_id(sub_cat_options_value, tier_value, enchant_value)
-		except ValueError:
-			print("""ERROR: Please pass the correct item_id format and name. This error is to make sure that you
-			don't make this mistake.
-			"The error is found in the ApiPrice class.""")
-			sys.exit(1)  # Force exits the program
-		return item_id
+		# URL for the API call
+		url = f"{self.base_url}{self.item_id}.json?locations={self.city}&qualities={item_quality_id + 1}"
+
+		# Datatable with pandas' dataframe
+		pd.set_option("display.max_columns", 11)
+		df = pd.read_json(url)
+		print(df)
 
 
 def center_window(master):
@@ -389,14 +402,14 @@ def convert_name_to_id(item_name, item_tier, item_enchant_value):
 	return item_id
 
 
-def error_msg():
+def error_msg(text):
 
 	# Create new error window
 	error_root = tk.Tk()
 	error_root.title("ERROR!")
 	error_root.iconbitmap("img/ao_bitmap_logo.ico")
 
-	my_label = tk.Label(error_root, text="ERROR! Please Check Item Info", width=35, height=3)
+	my_label = tk.Label(error_root, text=text, width=35, height=3)
 	my_label.pack(padx=0, pady=0)
 	center_window(error_root)
 
@@ -552,7 +565,7 @@ quality_value = quality_value # Item Quality
 city = city_value  # Filter what city to search in
 
 api_call = ApiPrice(item_archetype, item_type, tier_value, enchant_value, quality_value, city)
-api_call.get_item_id()
+api_call.data_from_api()
 
 
 root.resizable(False, False)  # Disable resizing app window
