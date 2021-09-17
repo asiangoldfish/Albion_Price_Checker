@@ -1,17 +1,11 @@
 """
-This document contains dictionaries of items in the game and lists of their attributes.
+This document contains dictionaries of items that the user can choose between.
+The reason why the other dictionaries and json files aren't used for this purpose is because
+making the type of lists in this document makes it much more convenient to work with.
 """
 
 
-def tier_ranking():
-	tiers = ["Beginner's", "Novice's", "Journeyman's", "Adept's", "Expert's", "Master's", "Grandmaster's", "Elder's"]
-	return tiers
-
-def cities_list():
-	cities = ["BlackMarket", "Caerleon", "Lymhurst", "Bridgewatch", "Martlock", "Thetford", "FortSterling"]
-	return cities
-
-def equip_category():
+def equip_archetype():
 	equip_list = {
 		"Sword": {
 			"Broadsword",
