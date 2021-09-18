@@ -1,16 +1,17 @@
 """
 This program fetches data from the Albion Online Data Project and displays the price on an interactive GUI.
 """
-import json
-import tkinter as tk
-import urllib.request
-from PIL import ImageTk, Image
-from data import item_selections, Formatted_Items_List
-import pandas as pd
-import os.path
-from datetime import datetime, date
 import configparser
-import sys
+import json
+import os.path
+import tkinter as tk
+from datetime import datetime, date
+import urllib.request
+
+import pandas as pd
+from PIL import ImageTk, Image
+
+from data import item_selections, Formatted_Items_List
 
 
 class MyConfig(configparser.ConfigParser):
@@ -21,14 +22,16 @@ class MyConfig(configparser.ConfigParser):
 
 
 class MyLabels(tk.Label):
-	def __init__(self, master=None, result_list=None, column=0, row=0):
+	def __init__(self, master=None, column=0, row=0):
 		super().__init__()
 		self.master = master
-		self.result_list = result_list
 		self.column = column
 		self.row = row
+
 		self.search_labels_list = json.loads(config.get("Other Labels Default", "search_labels_list"))
 		self.result_labels_list = json.loads(config.get("API Results", "result_labels_list"))
+
+		self.labels_list = list()  # List of all labels that a method creates
 
 	# Creates labels in a grid
 	def search_labels(self):
@@ -45,12 +48,35 @@ class MyLabels(tk.Label):
 			my_label = tk.Label(self.master, width=15, height=1, textvar=label_var, bg="orange")
 			my_label.grid(column=0, row=i)
 
-	def result_item_labels(self):
-		for i in range(len(self.result_list)):
+	def result_item_labels(self, labels_value=None):
+		"""
+		Fetches data from the config file about what types of data will be retrieved. Stores these in a list.
+		Then, creates a number of labels. The number depends on the length of the list. Finally, adds the newly
+		created labels in the labels_list class attribute.
+
+		This method is also used to update the labels with new data. To do this, it deletes currently existing labels
+		in the labels_list attribute and fills it with new labels containing updated data.
+		"""
+		# List from the config file
+		data_placeholder = json.loads(config.get("API Results", "result_labels_list"))
+
+		# Fills the label values with placeholders. Used to create the labels upon starting the app.
+		if labels_value is None:
+			labels_value = list()
+			for i in range(len(data_placeholder)):
+				labels_value.append("N/A")
+
+		# Clears the list of labels
+		if len(self.labels_list) > 0:
+			self.labels_list.clear()
+
+		# Creates new labels and adds them to the list of labels.
+		for i in range(len(data_placeholder)):
 			label_var = tk.StringVar()
-			label_var.set(self.result_list[i])
-			my_label = tk.Label(self.master, width=15, height=1, textvar=label_var, bg="green")
+			label_var.set(labels_value[i])
+			my_label = tk.Label(self.master, width=25, height=1, textvar=label_var, bg="green")
 			my_label.grid(column=self.column, row=i)
+			self.labels_list.append(my_label)
 
 
 class ContentCanvas(tk.Canvas):
@@ -58,7 +84,8 @@ class ContentCanvas(tk.Canvas):
 		super().__init__(master=master, highlightthickness=highlightthickness, highlightbackground=highlightbackground)
 		self.master = master  # Widget to parent to
 		self.image = image  # Background image
-		# self.layout_method = layout_method  # How to layout (pack, grid or place)
+
+	# self.layout_method = layout_method  # How to layout (pack, grid or place)
 
 	def layout_canvas(self, layout_method=None, side=None, fill=None, column=0, row=0, padx=0, pady=0, expand="no"):
 		"""
@@ -85,7 +112,8 @@ class ContentCanvas(tk.Canvas):
 			error_message = "Incorrect layout method has been specified. Please choose pack, grid"
 			raise ValueError(error_message)
 
-	def canvas_title(self):
+	@staticmethod
+	def canvas_title():
 		"""
 		Use this method to create a title label for the canvas
 		:return:
@@ -97,18 +125,18 @@ class ItemThumbnail(tk.Label):
 	"""
 	Hello world!
 	"""
+
 	def __init__(self, master, size_x=75, size_y=75, image=None):
 		super().__init__(master=master)
 		self.image = image
 		self.size_x = size_x
 		self.size_y = size_y
 
-	def update_image(self, item_id="T4_MAIN_SWORD", update=False):
+	def update_image(self, item_id, update=False):
 		"""
 		Updates the item thumbnail. If the file doesn't exist on disk, then creates a new file with default thumbnail.
 
 		:param update Bool. If true, then updates the item thumbnail.
-		:param str item_id: Default item_id value
 		:return: Boolean
 		"""
 		# Checks if the file exists on disk
@@ -118,7 +146,7 @@ class ItemThumbnail(tk.Label):
 		# Writes the new item thumbnail to disk
 		if update:
 			url = f"https://render.albiononline.com/v1/item/{item_id}.png?locale=en"
-			url_write = urllib.request.urlretrieve(url, "img/item_img.png")  # Writes to disk
+			url_write = urllib.request.urlretrieve(url, "img/item_img.png")
 
 		# Updates the item thumbnail
 		new_image = Image.open("img/item_img.png")
@@ -131,19 +159,33 @@ class ItemThumbnail(tk.Label):
 
 
 class ApiPrice:
-	def __init__(self, item_archetype, item_type, tier_value, enchant_value, quality_value, city):
+	def __init__(self, item_category, item_branch, tier, enchantment, quality_level, city_val):
 		# Variables needed to find the id of the user selected item
-		self.item_archetype = item_archetype.get()
+		self.item_archetype = item_category.get()
+		self.item_type = item_branch.get()
+		self.tier_value = tier.get()
+		self.enchant_value = enchantment.get()
+		self.quality_value = quality_level.get()
+
+		# Base URL for the API call
+		self.base_url = "https://www.albion-online-data.com/api/v2/stats/Prices/"  # URL of the API without queries
+		self.city = city_val.get()  # Filter what city to search the item in
+
+		# Variables used to populate the result labels.
+		self.item_id = self.get_item_id()
+
+	def update_class_attributes(self):
+		"""
+		This class uses global vars to fetch data from the outer scope, updating all class attributes used
+		to make the API call.
+		"""
+		global archetype_options_value, sub_cat_options_value, tier_value, enchant_value, quality_value, city_value
+		self.item_archetype = archetype_options_value.get()
 		self.item_type = item_type.get()
 		self.tier_value = tier_value.get()
 		self.enchant_value = enchant_value.get()
 		self.quality_value = quality_value.get()
-
-		# Base URL for the API call
-		self.base_url = "https://www.albion-online-data.com/api/v2/stats/Prices/"  # URL of the API without queries
-		self.city = city.get()  # Filter what city to search the item in
-
-		# Variables used to populate the result labels.
+		self.city = city.get()
 		self.item_id = self.get_item_id()
 
 	def get_item_id(self):
@@ -151,20 +193,10 @@ class ApiPrice:
 		Puts together item name, tier and enchantment level and converts it to the
 		matching item_id.
 		"""
-		"""
-		1. Put together the item_id based on the item name, tier and enchantment level
-		1.1 Get the user input for item name, tier and enchantment level.
-		1.2 Loop through all item_ids and match it with the item name. If a match has
-			has been found, then add the tier and enchantment level
-		2. Check if the item id is valid. Send an error message to user if not.
-		3. Return the item_id
-		"""
 		# Gets the values of the user inputs
 		input_name = self.item_type
 		input_tier = self.tier_value
 		input_enchant = self.enchant_value
-
-		# Declares vars for each component that will be used to find the item_id
 
 		"""In the following code blocks, the item_tier will be identified"""
 
@@ -219,16 +251,56 @@ class ApiPrice:
 		# Gets the quality ID of the quality name
 		item_quality_list = json.loads(config.get("Item Data", "item_quality"))
 		item_quality_id = item_quality_list.index(self.quality_value)
-		print(item_quality_id)
-		print(type(item_quality_id))
 
 		# URL for the API call
 		url = f"{self.base_url}{self.item_id}.json?locations={self.city}&qualities={item_quality_id + 1}"
-
 		# Datatable with pandas' dataframe
 		pd.set_option("display.max_columns", 11)
 		df = pd.read_json(url)
-		print(df)
+		return df
+
+	def update_labels(self, labels_object, item_image_object):
+		"""Analysis data from the datatable and feeds them to the labels to update."""
+		# Updates all class attributes, otherwise they will use the default values
+		self.update_class_attributes()
+
+		df = self.data_from_api()
+
+		# Updates class attributes to fetch the new user inputs
+		self.update_class_attributes()
+
+		# Fetches data from data table df using fetch_data method.
+		item_id = self.fetch_data(df, "item_id")
+		my_city = self.fetch_data(df, "city")
+		sell_price_min = self.fetch_data(df, "sell_price_min")
+		sell_price_min_date = self.fetch_data(df, "sell_price_min_date")
+		buy_price_max = self.fetch_data(df, "buy_price_max")
+		buy_price_max_date = self.fetch_data(df, "buy_price_max_date")
+
+		# Formats the name, from item ID to the same item name as in-game
+		item_id = Formatted_Items_List.items_list.get(item_id)
+
+		# Formats the date and time so it instead shows how many days since last update. Formats to "over 30 days"
+		# if last update was over 30 days ago
+		sell_price_min_date = time_dif(sell_price_min_date)
+		if sell_price_min_date > 30:
+			sell_price_min_date = "Over 30 days ago"
+		else:
+			sell_price_min_date = f"{sell_price_min_date} days ago"
+
+		buy_price_max_date = time_dif(buy_price_max_date)
+		if buy_price_max_date > 30:
+			buy_price_max_date = "Over 30 days ago"
+		else:
+			buy_price_max_date = f"{buy_price_max_date} days ago"
+
+		# Appends all data to a list, used to feed the result item labels
+		data_list = [item_id, my_city, sell_price_min, sell_price_min_date, buy_price_max, buy_price_max_date]
+		labels_object.result_item_labels(labels_value=data_list)
+
+		# Updates item image label
+		item_image_object.update_image(update=True, item_id=self.item_id)
+
 
 
 def center_window(master):
@@ -255,91 +327,6 @@ def update_sub_cat(event):
 		sub_dropdown["menu"].add_command(label=name, command=tk._setit(sub_cat_options_value, name))
 
 
-def get_results():
-	"""
-	Get the results based on the user input from OptionMenus. Creates an API get request as a formatted string.
-	Outputs the API return.
-	"""
-	global enchant_value, sub_cat_options_value, tier_value, result_canvas, quality_value, city_value, quality_list, item_thumbnail
-
-	# Generate URL
-	def fetch_data(dataframe, keyword):
-		"""Makes it quicker to fetch data from the pandas dataframe"""
-		return dataframe.iloc[0][keyword]
-
-	def quality_index(index_quality_list, selected_quality):
-		index = 0
-		for i in range(len(index_quality_list)):
-			if index_quality_list[i] == selected_quality:
-				index = i
-		return index
-
-	base_url = "https://www.albion-online-data.com/api/v2/stats/Prices/"
-
-	# Item data
-	try:
-		item_id = convert_name_to_id(sub_cat_options_value, tier_value, enchant_value)
-	except ValueError:
-		item_id = "none"
-
-	quality = quality_index(quality_list, quality_value.get())
-	city = city_value.get()
-
-
-
-	item_query = f"{item_id}.json"
-	quality_query = f"{quality}"
-	city_query = f"{city}"
-
-	# Retrieve and analyse data
-	pd.set_option("display.max_columns", 11)
-	send_url = f"{base_url}{item_query}?locations={city_query}&qualities={quality_query}"
-	df = pd.read_json(send_url)  # Makes a pandas dataframe/datatable
-
-	# Fetched variables from data frame
-	city = fetch_data(df, "city")
-	buy_price_min = fetch_data(df, "buy_price_min")
-	buy_price_min_date = fetch_data(df, "buy_price_min_date")
-	sell_price_max = fetch_data(df, "sell_price_max")
-	sell_price_max_date = fetch_data(df, "sell_price_max_date")
-
-	# Checks if price is valid
-	invalid_data = "No Data"
-	if buy_price_min == 0:
-		buy_price_min = invalid_data
-		buy_price_min_date = invalid_data
-	if sell_price_max == 0:
-		sell_price_max = invalid_data
-		sell_price_max_date = invalid_data
-
-	# Checks the delta time between sys time and the API data
-
-	# Buy order
-	if buy_price_min_date != invalid_data:
-		old_buy_time = buy_price_min_date.split("T")  # Old time
-		buy_price_min_date = time_dif(old_buy_time)  # New time
-
-	# Sell order
-	if sell_price_max_date != invalid_data:
-		old_sell_time = sell_price_max_date.split("T")  # Old time
-		sell_price_max_date = time_dif(old_sell_time)  # New time
-
-		# Sets time as "Today" if latest update is today
-		if sell_price_max_date == 0:
-			sell_price_max_date = "Today"
-		else:
-			sell_price_max_date = f"{sell_price_max_date} days ago"
-
-	# Update result labels with item meta data
-	result_list = [item_id, city, buy_price_min, buy_price_min_date, sell_price_max, sell_price_max_date]
-	result_labels = MyLabels(master=result_canvas, result_list=result_list, column=1)
-	result_labels.result_item_labels()
-
-	# Update item image label
-	item_image = item_thumbnail
-	item_image.update_image(update=True, item_id=item_id)
-
-
 def time_dif(to_time):
 	"""
 	Gets the time difference between system or input time, input time. Format must be:
@@ -355,10 +342,9 @@ def time_dif(to_time):
 	now_date_d = now.strftime("%d")
 
 	now_date_formatted = date(int(now_date_y), int(now_date_m), int(now_date_d))
-
-	to_date_y = to_time[0][0:4]
-	to_date_m = to_time[0][5:7]
-	to_date_d = to_time[0][8:10]
+	to_date_y = to_time[0:4]
+	to_date_m = to_time[5:7]
+	to_date_d = to_time[8:10]
 
 	to_date_formatted = date(int(to_date_y), int(to_date_m), int(to_date_d))
 
@@ -367,12 +353,6 @@ def time_dif(to_time):
 	return_delta_days = delta_date.days
 
 	return return_delta_days * -1
-
-
-def reformat_json(obj):
-	# text = json.dumps(obj, sort_keys=True, indent=4)
-	text = json.dumps(obj, sort_keys=True, indent=4)
-	return text
 
 
 def convert_name_to_id(item_name, item_tier, item_enchant_value):
@@ -403,7 +383,6 @@ def convert_name_to_id(item_name, item_tier, item_enchant_value):
 
 
 def error_msg(text):
-
 	# Create new error window
 	error_root = tk.Tk()
 	error_root.title("ERROR!")
@@ -412,6 +391,11 @@ def error_msg(text):
 	my_label = tk.Label(error_root, text=text, width=35, height=3)
 	my_label.pack(padx=0, pady=0)
 	center_window(error_root)
+
+
+def update_user_input():
+	global archetype_options_value, sub_cat_options_value, tier_value, enchant_value, quality_value, city_value
+	return [archetype_options_value, sub_cat_options_value, tier_value, enchant_value, quality_value, city_value]
 
 
 """
@@ -433,8 +417,8 @@ root.title("Albion Price Checker")
 root.iconbitmap("img/ao_bitmap_logo.ico")
 
 # Calculate user screen center and set resolution || NOTE: STILL NOT PERFECT
-root.geometry(config.get("DEFAULT", "resolution")) # Set window dimensions
-center_window(root) # Center window
+root.geometry(config.get("DEFAULT", "resolution"))  # Set window dimensions
+center_window(root)  # Center window
 
 # Master canvas
 bg_canvas = ContentCanvas(root, highlightthickness=0)
@@ -449,7 +433,7 @@ Widgets
 treasure_bg_width = 206
 treasure_bg_height = 320
 treasure_bg = Image.open("img/treasure_bg.png")
-treasure_bg = treasure_bg.resize((treasure_bg_width*2, treasure_bg_height*2), Image.ANTIALIAS)
+treasure_bg = treasure_bg.resize((treasure_bg_width * 2, treasure_bg_height * 2), Image.ANTIALIAS)
 treasure_bg = ImageTk.PhotoImage(treasure_bg)
 
 highlight_colour = "#e6c8ae"
@@ -490,7 +474,7 @@ result_label = MyLabels(result_canvas)
 result_label.result_labels()
 
 result_item_list = json.loads(config.get("API Results", "retrieve_data"))  # Loads the default values for the labels
-result_item_label = MyLabels(master=result_canvas, result_list=result_item_list, column=1)
+result_item_label = MyLabels(master=result_canvas, column=1)
 result_item_label.result_item_labels()
 
 # archetype list - List of item archetypes
@@ -502,7 +486,7 @@ archetype_options_value = tk.StringVar()  # This is the selected value of the dr
 archetype_options_value.set(archetype_options_list[0])  # Sets the default value for the dropdown menu
 
 archetype_options_dropdown = tk.OptionMenu(search_canvas, archetype_options_value, *archetype_options_list,
-                                          command=update_sub_cat)
+                                           command=update_sub_cat)
 archetype_options_dropdown.grid(column=1, row=0, padx=5, pady=5)
 
 # Sub archetype list - list of item types
@@ -543,13 +527,10 @@ city_list = json.loads(config.get("World", "cities"))
 city_dropdown = tk.OptionMenu(search_canvas, city_value, *city_list)
 city_dropdown.grid(column=1, row=5, padx=5, pady=5)
 
-# Submit button
-submit_button = tk.Button(search_canvas, text="Submit Request", command=get_results)
-submit_button.grid(column=1, row=6, padx=5, pady=5)
-
 # Item thumbnail
 item_thumbnail = ItemThumbnail(master=result_canvas)
-item_thumbnail.update_image()
+default_thumbnail_img = "T4_MAIN_SWORD"
+item_thumbnail.update_image(item_id=default_thumbnail_img)
 item_thumbnail.grid(column=1)
 
 """
@@ -557,16 +538,19 @@ Here, API calls is setup. The following new variables are not strictly necessary
 readability and working with much easier. All the variables are objects of the tk.StringVar class and are the objects
 that the user selects with the dropdown menus.
 """
-item_archetype = archetype_options_value  # Item archetype
+item_archetype = archetype_options_value
 item_type = sub_cat_options_value  # Item type
 tier_value = tier_value  # Item tier
 enchant_value = enchant_value  # Item Enchantment level
-quality_value = quality_value # Item Quality
+quality_value = quality_value  # Item Quality
 city = city_value  # Filter what city to search in
 
 api_call = ApiPrice(item_archetype, item_type, tier_value, enchant_value, quality_value, city)
-api_call.data_from_api()
 
+"""Submit button to update item prices and data"""
+submit_button = tk.Button(search_canvas, text="Submit Request",
+                          command=lambda: api_call.update_labels(result_item_label, item_thumbnail))
+submit_button.grid(column=1, row=6, padx=5, pady=5)
 
 root.resizable(False, False)  # Disable resizing app window
 root.mainloop()
