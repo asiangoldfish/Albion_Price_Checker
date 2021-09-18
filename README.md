@@ -17,7 +17,7 @@ ___
 
 The repository is currently a little hot mess. However, feel free to explore it.
 The program is written in Python 3.9, but any Python version 3 should work. It has some dependencies not included in the standard library. 
-To quickly install these, use `requirements.txt` to install them:
+To quickly install these, use `requirements.txt`.
 
 1. If you don't have pip installed, do that first.
 2. Use the following command in the terminal: `pip install -r requirements.txt`
