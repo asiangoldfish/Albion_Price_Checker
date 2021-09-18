@@ -21,3 +21,9 @@ To quickly install these, use `requirements.txt`.
 
 1. If you don't have pip installed, do that first.
 2. Use the following command in the terminal: `pip install -r requirements.txt`
+
+___
+
+# Running the program
+
+To run the program from binary, check out the releases and download `albion_price_check.zip`.
