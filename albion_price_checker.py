@@ -6,6 +6,7 @@ import json
 import os.path
 import tkinter as tk
 from datetime import datetime, date
+import urllib.request
 
 import pandas as pd
 from PIL import ImageTk, Image
@@ -73,7 +74,7 @@ class MyLabels(tk.Label):
 		for i in range(len(data_placeholder)):
 			label_var = tk.StringVar()
 			label_var.set(labels_value[i])
-			my_label = tk.Label(self.master, width=15, height=1, textvar=label_var, bg="green")
+			my_label = tk.Label(self.master, width=25, height=1, textvar=label_var, bg="green")
 			my_label.grid(column=self.column, row=i)
 			self.labels_list.append(my_label)
 
@@ -131,7 +132,7 @@ class ItemThumbnail(tk.Label):
 		self.size_x = size_x
 		self.size_y = size_y
 
-	def update_image(self, update=False):
+	def update_image(self, item_id, update=False):
 		"""
 		Updates the item thumbnail. If the file doesn't exist on disk, then creates a new file with default thumbnail.
 
@@ -144,7 +145,8 @@ class ItemThumbnail(tk.Label):
 
 		# Writes the new item thumbnail to disk
 		if update:
-			pass
+			url = f"https://render.albiononline.com/v1/item/{item_id}.png?locale=en"
+			url_write = urllib.request.urlretrieve(url, "img/item_img.png")
 
 		# Updates the item thumbnail
 		new_image = Image.open("img/item_img.png")
@@ -297,7 +299,7 @@ class ApiPrice:
 		labels_object.result_item_labels(labels_value=data_list)
 
 		# Updates item image label
-		item_image_object.update_image(update=True)
+		item_image_object.update_image(update=True, item_id=self.item_id)
 
 
 
@@ -311,7 +313,7 @@ def loading_screen(master, path):
 	label.pack()
 
 
-def update_sub_cat():
+def update_sub_cat(event):
 	global sub_cat_options_list, sub_dropdown
 
 	sub_cat_options_value.set("Item Type")
@@ -527,7 +529,8 @@ city_dropdown.grid(column=1, row=5, padx=5, pady=5)
 
 # Item thumbnail
 item_thumbnail = ItemThumbnail(master=result_canvas)
-item_thumbnail.update_image()
+default_thumbnail_img = "T4_MAIN_SWORD"
+item_thumbnail.update_image(item_id=default_thumbnail_img)
 item_thumbnail.grid(column=1)
 
 """
