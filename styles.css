@@ -1,0 +1,123 @@
+/* Header of the body */
+/* _____________________________________________________________ */
+header {
+  font-size: 25px;
+  text-align: center;
+}
+
+/* Main part of the body */
+/* _____________________________________________________________ */
+
+/* The albion forground image */
+.front-image {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+
+/* Styling the nav bar */
+/* -------------------------------------------------------------- */
+.navbar ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  background-color: rgb(100, 31, 14);
+  font-size: 15px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+}
+
+.navbar ul li {
+  float: left;
+}
+
+.navbar ul li a {
+  display: block;
+  padding-top: 20px;
+  padding-bottom: 20px;
+  padding-right: 40px;
+  padding-left: 40px;
+  color: white;
+  text-decoration: none;
+}
+
+/* Changes color when hovered */
+.navbar li a:hover {
+  background-color: rgb(122, 24, 0);
+}
+
+/* Dropdown content */
+.navbar-dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: rgb(100, 31, 14);
+  box-shadow: 0px 8px 16px 9px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+}
+
+.navbar-dropdown:hover .navbar-dropdown-content {
+  display: block;
+}
+/* -------------------------------------------------------------- */
+
+/* <Table of Content */
+/* -------------------------------------------------------------- */
+
+/* Shaping the table */
+#toc-container {
+  background: #f9f9f9;
+  border: 1 px solid #aaa;
+  display: table;
+  padding-right: 25px;
+  padding-top: 15px;
+  padding-bottom: 15px;
+  width: auto;
+  margin-bottom: 40px;
+}
+
+/* Counting format of elements */
+#toc-container li {
+  list-style-type: decimal;
+}
+
+/* Table title */
+.toc-title {
+  font-weight: 900;
+  text-align: center;
+}
+
+.table-of-content a:hover {
+  color: rgb(0, 150, 230);
+}
+/* -------------------------------------------------------------- */
+
+/* Global link styling */
+a:link,
+a:visited {
+  color: rgb(0, 0, 200);
+}
+
+/* Global body styling */
+body {
+  padding-top: 30px;
+  background-color: rgba(202, 183, 152, 0.246);
+}
+
+/* Global font size */
+p {
+  font-size: 17px;
+}
+
+/* Footer */
+/*
+footer p {
+  position: absolute;
+  bottom: 0;
+  font-size: 15px;
+  display: block;
+}*/
