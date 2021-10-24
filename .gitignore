@@ -1,4 +1,4 @@
-venv/
+.venv/
 _pycache_/
 .ipynb_checkpoints
 .idea
