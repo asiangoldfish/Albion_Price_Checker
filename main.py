@@ -123,7 +123,8 @@ class ContentCanvas(tk.Canvas):
 
 class ItemThumbnail(tk.Label):
 	"""
-	Hello world!
+	Thumbnail for the searched item. This is updated every time the user successfully
+	searches for a new item price.
 	"""
 
 	def __init__(self, master, size_x=75, size_y=75, image=None):
@@ -158,7 +159,10 @@ class ItemThumbnail(tk.Label):
 		return new_image
 
 
+# Manages item price requests
 class ApiPrice:
+	# This class takes care of user input and converting them into a request sent to the Albion Data Project server. Also updates
+	# labels with results from the server.
 	def __init__(self, item_category, item_branch, tier, enchantment, quality_level, city_val):
 		# Variables needed to find the id of the user selected item
 		self.item_archetype = item_category.get()
@@ -179,7 +183,7 @@ class ApiPrice:
 		This class uses global vars to fetch data from the outer scope, updating all class attributes used
 		to make the API call.
 		"""
-		global archetype_options_value, sub_cat_options_value, tier_value, enchant_value, quality_value, city_value
+		global archetype_options_value, item_type_value, tier_value, enchant_value, quality_value, city_value
 		self.item_archetype = archetype_options_value.get()
 		self.item_type = item_type.get()
 		self.tier_value = tier_value.get()
@@ -212,7 +216,9 @@ class ApiPrice:
 
 		# Throws an error message if user has not selected an item type
 		if input_name == json.loads(config.get("Other Labels Default", "search_labels_list"))[1]:
-			error_msg(text="ERROR! Please Check Item Info")
+			# The below line is broken on Linux systems. Needs a fix, but is non-critical.
+			#error_msg(text="ERROR! Please Check Item Info")
+			pass
 
 		item_label = f"{item_tier} {input_name}"  # Combines the item name like seen in-game
 
@@ -313,19 +319,17 @@ def loading_screen(master, path):
 	label.pack()
 
 
-def update_sub_cat(event):
-	global sub_cat_options_list, sub_dropdown
-
-	sub_cat_options_value.set("Item Type")
-	sub_dropdown["menu"].delete(0, "end")
-
-	selected_name = archetype_options_value.get()
+def update_item_list(event):
+	global item_type_list, item_list_dropdown
+	
+	item_list_dropdown["menu"].delete(0, "end")
 
 	# Insert list of new functions
-	sub_cat_options_list = items_list.get(selected_name)  # Refresh list
-	for name in sub_cat_options_list:
-		sub_dropdown["menu"].add_command(label=name, command=tk._setit(sub_cat_options_value, name))
-
+	item_type_list = list(items_list.get(archetype_options_value.get()))  # Refresh list
+	for name in item_type_list:
+		item_list_dropdown["menu"].add_command(label=name, command=tk._setit(item_type_value, name))
+	
+	item_type_value.set(item_type_list[0])
 
 def time_dif(to_time):
 	"""
@@ -382,6 +386,7 @@ def convert_name_to_id(item_name, item_tier, item_enchant_value):
 	return item_id
 
 
+# Broken code on Linux systems. Needs fix, but is non-critical.
 def error_msg(text):
 	# Create new error window
 	error_root = tk.Tk()
@@ -394,8 +399,8 @@ def error_msg(text):
 
 
 def update_user_input():
-	global archetype_options_value, sub_cat_options_value, tier_value, enchant_value, quality_value, city_value
-	return [archetype_options_value, sub_cat_options_value, tier_value, enchant_value, quality_value, city_value]
+	global archetype_options_value, item_type_value, tier_value, enchant_value, quality_value, city_value
+	return [archetype_options_value, item_type_value, tier_value, enchant_value, quality_value, city_value]
 
 
 """
@@ -414,7 +419,7 @@ Super widgets and application window
 # Application window
 root = tk.Tk()
 root.title("Albion Price Checker")
-root.iconbitmap("img/ao_bitmap_logo.ico")
+# root.iconbitmap("img/ao_bitmap_logo.ico")
 
 # Calculate user screen center and set resolution || NOTE: STILL NOT PERFECT
 root.geometry(config.get("DEFAULT", "resolution"))  # Set window dimensions
@@ -464,12 +469,14 @@ The following widgets implement drop down menu systems for interactive selection
 """
 # List of items that the user can choose between
 items_list = item_selections.equip_archetype()
-items_list_keys = list(items_list)  # Returns all the keys in the equip_list dictionary
+# Return all the item archetypes in the equip_list dictionary
+items_list_keys = list(items_list)
 
-# Make labels for user search and result data
+# Make labels for user search
 select_label = MyLabels(search_canvas)
 select_label.search_labels()
 
+# Make labels for result data
 result_label = MyLabels(result_canvas)
 result_label.result_labels()
 
@@ -478,24 +485,24 @@ result_item_label = MyLabels(master=result_canvas, column=1)
 result_item_label.result_item_labels()
 
 # archetype list - List of item archetypes
-archetype_options_list = list()
+archetype_options_list = list()	# Initialize archetype list
 for key in items_list:
-	archetype_options_list.append(key)  # Appends item types into a new list so the drop down menu works
+	archetype_options_list.append(key)	# Append item types into a new list so the drop down menu works
 
 archetype_options_value = tk.StringVar()  # This is the selected value of the dropdown menu
 archetype_options_value.set(archetype_options_list[0])  # Sets the default value for the dropdown menu
 
 archetype_options_dropdown = tk.OptionMenu(search_canvas, archetype_options_value, *archetype_options_list,
-                                           command=update_sub_cat)
+                                           command=update_item_list)
 archetype_options_dropdown.grid(column=1, row=0, padx=5, pady=5)
 
-# Sub archetype list - list of item types
-sub_cat_options_value = tk.StringVar()  # Value of the selected item in the dropdown menu
-sub_cat_options_value.set("Broadsword")  # Sets the default value of the dropdown menu
-sub_cat_options_list = items_list.get(archetype_options_value.get())  # Gets the available items based on item archetype
+# Item type list - list of item types
+item_type_value = tk.StringVar()  # Value of the selected item in the dropdown menu
+item_type_value.set("Broadsword")  # Sets the default value of the dropdown menu
+item_type_list = items_list.get(archetype_options_value.get())  # Gets the available items based on item archetype
 
-sub_dropdown = tk.OptionMenu(search_canvas, sub_cat_options_value, *sub_cat_options_list)
-sub_dropdown.grid(column=1, row=1, padx=5, pady=5)
+item_list_dropdown = tk.OptionMenu(search_canvas, item_type_value, *item_type_list)
+item_list_dropdown.grid(column=1, row=1, padx=5, pady=5)
 
 # Item Tier
 tier_value = tk.StringVar()
@@ -539,7 +546,7 @@ readability and working with much easier. All the variables are objects of the t
 that the user selects with the dropdown menus.
 """
 item_archetype = archetype_options_value
-item_type = sub_cat_options_value  # Item type
+item_type = item_type_value  # Item type
 tier_value = tier_value  # Item tier
 enchant_value = enchant_value  # Item Enchantment level
 quality_value = quality_value  # Item Quality
