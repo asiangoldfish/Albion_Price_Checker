@@ -320,8 +320,15 @@ def loading_screen(master, path):
 
 
 def update_item_list(event):
-	global item_type_list, item_list_dropdown
-	
+	"""
+	Fetch new items available for specified item archetype and update the item type list to show correct items.
+	Updates item type default before updating the item type list.
+	"""
+	global item_type_list, item_list_dropdown, archetype_options_current_value
+
+	# Updates item type default by using json file "data/search_defaults.json"
+	update_json("data/search_defaults.json", archetype_options_current_value, item_type_value.get())
+
 	item_list_dropdown["menu"].delete(0, "end")
 
 	# Insert list of new functions
@@ -329,7 +336,34 @@ def update_item_list(event):
 	for name in item_type_list:
 		item_list_dropdown["menu"].add_command(label=name, command=tk._setit(item_type_value, name))
 	
-	item_type_value.set(item_type_list[0])
+	# When user selects new item archetype, auto select an item type in the category
+	# from search_defaults.json
+	type_json = open("data/search_defaults.json", "r")
+	type_json_object = json.load(type_json)
+	item_type_value.set(type_json_object[archetype_options_value.get()])
+	type_json.close()
+
+	# Updated the current archetype options value, so the next default item type to set
+	# will be updated correctly
+	archetype_options_current_value = archetype_options_value.get()
+
+
+def update_json(filepath, key, new_value):
+	"""
+	Macro to update a named json file
+	"""
+	# Opens file, assigns it to variable, then closes file.
+	json_file = open(filepath, "r")
+	json_object = json.load(json_file)
+	json_file.close()	
+
+	# Update the value of a given key
+	json_object[key] = new_value
+
+	# Dump new value to json file
+	json_file = open(filepath, "w")
+	json.dump(json_object, json_file)
+
 
 def time_dif(to_time):
 	"""
@@ -491,6 +525,7 @@ for key in items_list:
 
 archetype_options_value = tk.StringVar()  # This is the selected value of the dropdown menu
 archetype_options_value.set(archetype_options_list[0])  # Sets the default value for the dropdown menu
+archetype_options_current_value = archetype_options_value.get()  # Used to properly update the default item type.
 
 archetype_options_dropdown = tk.OptionMenu(search_canvas, archetype_options_value, *archetype_options_list,
                                            command=update_item_list)
@@ -498,7 +533,13 @@ archetype_options_dropdown.grid(column=1, row=0, padx=5, pady=5)
 
 # Item type list - list of item types
 item_type_value = tk.StringVar()  # Value of the selected item in the dropdown menu
-item_type_value.set("Broadsword")  # Sets the default value of the dropdown menu
+
+# Set the default value of the dropdown menu
+type_json = open("data/search_defaults.json", "r")
+type_json_object = json.load(type_json)
+item_type_value.set(type_json_object[archetype_options_value.get()])
+type_json.close()
+
 item_type_list = items_list.get(archetype_options_value.get())  # Gets the available items based on item archetype
 
 item_list_dropdown = tk.OptionMenu(search_canvas, item_type_value, *item_type_list)
