@@ -1,4 +1,5 @@
 # noinspection PyUnresolvedReferences
+# Source: https://github.com/broderickhyman/ao-bin-dumps/blob/master/formatted/items.txt
 
 items_list = {
 		"UNIQUE_HIDEOUT": "Hideout Construction Kit",
