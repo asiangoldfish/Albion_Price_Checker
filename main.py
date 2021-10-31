@@ -13,15 +13,21 @@ from PIL import ImageTk, Image
 
 from data import item_selections, Formatted_Items_List
 
-
-class MyConfig(configparser.ConfigParser):
+# Set default values for labels in search menu
+class SearchConfig(configparser.ConfigParser):
+	"""
+	Enables opening and instantiating config files in an easy and simple way.
+	Also enables scalability, including already existing objects. Using Replace
+	features in IDEs, existing codes can be edited to work with scalability.
+	"""
 	def __init__(self):
 		super().__init__()
 
 		self.read("data/config.ini")
 
 
-class MyLabels(tk.Label):
+# Create labels tailored for item search and result. Acts as labels for different data about an item
+class SearchLabels(tk.Label):
 	def __init__(self, master=None, column=0, row=0):
 		super().__init__()
 		self.master = master
@@ -308,6 +314,67 @@ class ApiPrice:
 		item_image_object.update_image(update=True, item_id=self.item_id)
 
 
+# Manages different data of an item using dropdown menus. Allows users to interact
+# with these to manipulate their search filter
+class ManageFields():
+	"""
+	Create dropdown menus and fill them with options defined by each instance.
+
+	...
+
+	Attributes
+	----------
+	master : tkobject
+		object from the tkinter module
+	
+	Methods
+	-------
+	set_list(list_items):
+		Populate dropdown menu with items
+
+	set_default_value(default_value):
+		Set default value for the dropdown menu, i.e. the first value to appear
+	"""
+	def __init__(self, master):
+		self.config = SearchConfig()
+		self.master = master  # object to attach dropdown menu to
+		self.dropdown_list = json.loads(config.get("Item Data", "item_quality"))  # list()  # list containing options available of a field
+		self.dropdown_value = tk.StringVar()  # type of item to show on the dropdown menu
+		self.dropdown_value.set = "Hello"  # set default value to avoid error when creating the dropdown menu
+		self.dropdown = tk.OptionMenu(master=self.master, variable=self.dropdown_value, value=self.dropdown_value, values=self.dropdown_list)  # dropdown menu object
+	
+	def set_list(self, list_items):
+		"""
+		Populate dropdown menu with items
+
+		Parameters
+		----------
+		list_items : list
+			List of items to populate dropdown menu with
+
+		Returns
+		-------
+		None
+		"""
+		
+		self.dropdown_list = list_items
+	
+	def set_default_value(self, default_value):
+		"""
+		Set default value of dropdown menu
+
+		Parameters
+		----------
+		default_value : str
+			Default value for dropdown menu
+		
+		Returns
+		-------
+		None
+		"""
+
+		self.dropdown_value.set(default_value)
+
 
 def center_window(master):
 	master.eval('tk::PlaceWindow . center')  # Center windows
@@ -440,7 +507,7 @@ def update_user_input():
 """
 Configuration related variables
 """
-config = MyConfig()
+config = SearchConfig()
 
 """
 Developer tools to test features during development.
@@ -507,15 +574,15 @@ items_list = item_selections.equip_archetype()
 items_list_keys = list(items_list)
 
 # Make labels for user search
-select_label = MyLabels(search_canvas)
+select_label = SearchLabels(search_canvas)
 select_label.search_labels()
 
 # Make labels for result data
-result_label = MyLabels(result_canvas)
+result_label = SearchLabels(result_canvas)
 result_label.result_labels()
 
 result_item_list = json.loads(config.get("API Results", "retrieve_data"))  # Loads the default values for the labels
-result_item_label = MyLabels(master=result_canvas, column=1)
+result_item_label = SearchLabels(master=result_canvas, column=1)
 result_item_label.result_item_labels()
 
 # archetype list - List of item archetypes
@@ -533,8 +600,7 @@ archetype_options_dropdown.grid(column=1, row=0, padx=5, pady=5)
 
 # Item type list - list of item types
 item_type_value = tk.StringVar()  # Value of the selected item in the dropdown menu
-
-# Set the default value of the dropdown menu
+# Set the default value of the dropdown menu for item type list
 type_json = open("data/search_defaults.json", "r")
 type_json_object = json.load(type_json)
 item_type_value.set(type_json_object[archetype_options_value.get()])
@@ -567,6 +633,12 @@ quality_list = json.loads(config.get("Item Data", "item_quality"))
 quality_value.set(quality_list[0])
 quality_dropdown = tk.OptionMenu(search_canvas, quality_value, *quality_list)
 quality_dropdown.grid(column=1, row=4, padx=5, pady=5)
+
+#quality_list = ManageFields(master=search_canvas)
+#quality_list.set_list(json.loads(config.get("Item Data", "item_quality")))
+#quality_list.dropdown.grid(column=1, row=7, padx=5, pady=5)  # default : row=4
+
+print(json.loads(config.get("Item Data", "item_quality")))
 
 # City list
 city_value = tk.StringVar()
