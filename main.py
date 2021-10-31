@@ -344,6 +344,10 @@ class ManageFields():
 		self.dropdown_value.set(self.dropdown_list[default_item_index])  # set default value to avoid error when creating the dropdown menu
 		self.dropdown = tk.OptionMenu(master, self.dropdown_value, *self.dropdown_list)
 
+	def update_list(self, list_items):
+		self.dropdown_list = list_items
+
+
 
 def center_window(master):
 	master.eval('tk::PlaceWindow . center')  # Center windows
@@ -355,12 +359,14 @@ def loading_screen(master, path):
 	label.pack()
 
 
-def update_item_list(event, search_values_list):
+def update_item_list(search_values_list, item_type_list, archetype_selection):
 	"""
 	Fetch new items available for specified item archetype and update the item type list to show correct items.
 	Updates item type default before updating the item type list.
 	"""
-	global item_type_list, item_list_dropdown, archetype_options_current_value
+	global archetype_options_current_value  # item_list_dropdown, item_type_list
+	item_list_dropdown = item_type_list.dropdown
+	item_type_value = search_values_list[1]
 
 	# Updates item type default by using json file "data/search_defaults.json"
 	update_json("data/search_defaults.json", archetype_options_current_value, item_type_value.get())
@@ -382,6 +388,14 @@ def update_item_list(event, search_values_list):
 	# Updated the current archetype options value, so the next default item type to set
 	# will be updated correctly
 	archetype_options_current_value = archetype_options_value.get()
+
+	#####################
+	update_json("data/search_defaults.json", archetype_options_current_value, search_values_list[1])
+
+	item_type_list.dropdown_list = archetype_selection
+
+	
+	
 
 
 def update_json(filepath, key, new_value):
@@ -567,17 +581,17 @@ archetype_options_value.set(archetype_options_list[0])  # Sets the default value
 archetype_options_current_value = archetype_options_value.get()  # Used to properly update the default item type.
 
 archetype_options_dropdown = tk.OptionMenu(search_canvas, archetype_options_value, *archetype_options_list,
-                                           command=update_item_list(event=None, search_values_list=search_values_list))
+                                           command=update_item_list(search_values_list, item_type_list))
 archetype_options_dropdown.grid(column=1, row=0, padx=5, pady=5)
 
 # Let user filter item type
 type_json = open("data/search_defaults.json", "r")
 type_json_object = json.load(type_json)
 type_json.close()
-item_type_list = ManageFields(search_canvas, list(items_list.get(archetype_options_value.get())))
-item_type_list.dropdown.grid(column=1, row=1, padx=5, pady=5)  # default : row=1
 
-#print(type(list(items_list.get(archetype_options_value.get()))))
+items_for_type = list(items_list.get(archetype_options_value.get()))
+item_type_list = ManageFields(search_canvas, items_for_type)
+item_type_list.dropdown.grid(column=1, row=1, padx=5, pady=5)  # default : row=1
 
 # Let user filter item tier
 tier_list = ManageFields(
