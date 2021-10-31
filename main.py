@@ -170,48 +170,47 @@ class ItemThumbnail(tk.Label):
 class ApiPrice:
 	# This class takes care of user input and converting them into a request sent to the Albion Data Project server. Also updates
 	# labels with results from the server.
-	def __init__(self, item_category, item_branch, tier, enchantment, quality_level, city_val):
+	def __init__(self, search_values_list):
 		# Variables needed to find the id of the user selected item
-		self.item_archetype = item_category.get()
-		self.item_type = item_branch.get()
-		self.tier_value = tier.get()
-		self.enchant_value = enchantment.get()
-		self.quality_value = quality_level.get()
+		self.values_list = search_values_list
 
 		# Base URL for the API call
 		self.base_url = "https://www.albion-online-data.com/api/v2/stats/Prices/"  # URL of the API without queries
-		self.city = city_val.get()  # Filter what city to search the item in
 
 		# Variables used to populate the result labels.
 		self.item_id = self.get_item_id()
 
 	def update_class_attributes(self):
 		"""
-		This class uses global vars to fetch data from the outer scope, updating all class attributes used
-		to make the API call.
+		Update class attributes
+		
+		...
+
+		Returns
+		-------
+		None
 		"""
-		global archetype_options_value, item_type_value, tier_value, enchant_value, quality_value, city_value
-		self.item_archetype = archetype_options_value.get()
-		self.item_type = item_type.get()
-		self.tier_value = tier_value.get()
-		self.enchant_value = enchant_value.get()
-		self.quality_value = quality_value.get()
-		self.city = city.get()
-		self.item_id = self.get_item_id()
+		self.values_list = search_values_list
+		self.item_id = self.get_item_id()		
 
 	def get_item_id(self):
 		"""
-		Puts together item name, tier and enchantment level and converts it to the
+		Put together item name, tier and enchantment level and convert it to the
 		matching item_id.
+
+		...
+
+		Returns
+		-------
+		None
 		"""
 		# Gets the values of the user inputs
-		input_name = self.item_type
-		input_tier = self.tier_value
-		input_enchant = self.enchant_value
+		input_name = self.values_list[1]  # item type
+		input_tier = self.values_list[2]  # tier level
+		input_enchant = self.values_list[3]  # enchant level
 
-		"""In the following code blocks, the item_tier will be identified"""
-
-		# Convert tier into rarity name, i.e. "Expert's" instead of T5
+		# Identify item tier
+		# Convert tier into rarity name, for instance "Expert's" instead of T5
 		tiers_list = json.loads(config.get("Item Data", "tier_list"))  # Gets tier list from config file
 		tiers_ranking = json.loads(config.get("Item Data", "tier_ranking"))  # List of the name of each tier
 
@@ -263,10 +262,10 @@ class ApiPrice:
 		"""
 		# Gets the quality ID of the quality name
 		item_quality_list = json.loads(config.get("Item Data", "item_quality"))
-		item_quality_id = item_quality_list.index(self.quality_value)
+		item_quality_id = item_quality_list.index(self.values_list[4])
 
 		# URL for the API call
-		url = f"{self.base_url}{self.item_id}.json?locations={self.city}&qualities={item_quality_id + 1}"
+		url = f"{self.base_url}{self.item_id}.json?locations={self.values_list[5]}&qualities={item_quality_id + 1}"
 		# Datatable with pandas' dataframe
 		pd.set_option("display.max_columns", 11)
 		df = pd.read_json(url)
@@ -329,37 +328,21 @@ class ManageFields():
 		Object from the tkinter module
 	list_items : list
 		List of items to populate dropdown menu with
+	default_item_index=0 : int, optional
+		Default item to show in dropdown menu
 	
 	Methods
 	-------
-	set_default_value(default_value):
-		Set default value for the dropdown menu, i.e. the first value to appear
 	"""
-	def __init__(self, master, list_items):
+	def __init__(self, master, list_items, default_item_index=0):
 		# self.config = SearchConfig()
 
 		self.master = master  # object to attach dropdown menu to
 
 		self.dropdown_list = list_items  # list containing options available of a field
 		self.dropdown_value = tk.StringVar()  # type of item to show on the dropdown menu
-		self.dropdown_value.set(self.dropdown_list[0])  # set default value to avoid error when creating the dropdown menu
+		self.dropdown_value.set(self.dropdown_list[default_item_index])  # set default value to avoid error when creating the dropdown menu
 		self.dropdown = tk.OptionMenu(master, self.dropdown_value, *self.dropdown_list)
-	
-	def set_default_value(self, default_value):
-		"""
-		Set default value of dropdown menu
-
-		Parameters
-		----------
-		default_value : str
-			Default value for dropdown menu
-		
-		Returns
-		-------
-		None
-		"""
-
-		self.dropdown_value.set(default_value)
 
 
 def center_window(master):
@@ -584,54 +567,33 @@ archetype_options_dropdown = tk.OptionMenu(search_canvas, archetype_options_valu
                                            command=update_item_list)
 archetype_options_dropdown.grid(column=1, row=0, padx=5, pady=5)
 
-# Item type list - list of item types
-item_type_value = tk.StringVar()  # Value of the selected item in the dropdown menu
-# Set the default value of the dropdown menu for item type list
+# Let user filter item type
 type_json = open("data/search_defaults.json", "r")
 type_json_object = json.load(type_json)
-item_type_value.set(type_json_object[archetype_options_value.get()])
 type_json.close()
+item_type_list = ManageFields(search_canvas, list(items_list.get(archetype_options_value.get())))
+item_type_list.dropdown.grid(column=1, row=1, padx=5, pady=5)  # default : row=1
 
-item_type_list = items_list.get(archetype_options_value.get())  # Gets the available items based on item archetype
+#print(type(list(items_list.get(archetype_options_value.get()))))
 
-item_list_dropdown = tk.OptionMenu(search_canvas, item_type_value, *item_type_list)
-item_list_dropdown.grid(column=1, row=1, padx=5, pady=5)
+# Let user filter item tier
+tier_list = ManageFields(
+	master=search_canvas,
+	list_items=json.loads(config.get("Item Data", "tier_list")),
+	default_item_index=3)
+tier_list.dropdown.grid(column=1, row=2, padx=5, pady=5)
 
-# Item Tier
-tier_value = tk.StringVar()
-tier_value.set(json.loads(config.get("Item Data", "tier_list"))[3])  # Gets the default value from the config file
-tier_list = json.loads(config.get("Item Data", "tier_list"))  # Gets the list of available tiers from config file
+# Let user filter enchantment quality
+enchant_list = ManageFields(search_canvas, json.loads(config.get("Item Data", "enchantment_list")))
+enchant_list.dropdown.grid(column=1, row=3, padx=5, pady=5)
 
-tier_dropdown = tk.OptionMenu(search_canvas, tier_value, *tier_list)
-tier_dropdown.grid(column=1, row=2, padx=5, pady=5)
-
-# Enchantment list
-enchant_value = tk.StringVar()
-enchant_value.set(json.loads(config.get("Item Data", "enchantment_list"))[0])
-enchantment_list = json.loads(config.get("Item Data", "enchantment_list"))
-
-enchant_dropdown = tk.OptionMenu(search_canvas, enchant_value, *enchantment_list)
-enchant_dropdown.grid(column=1, row=3, padx=5, pady=5)
-
-# Quality list
-quality_value = tk.StringVar()
-quality_list = json.loads(config.get("Item Data", "item_quality"))
-quality_value.set(quality_list[0])
-quality_dropdown = tk.OptionMenu(search_canvas, quality_value, *quality_list)
-quality_dropdown.grid(column=1, row=4, padx=5, pady=5)
-
+# Let user filter item quality
 quality_list = ManageFields(search_canvas, json.loads(config.get("Item Data", "item_quality")))
-quality_list.dropdown.grid(column=1, row=7, padx=5, pady=5)  # default : row=4
+quality_list.dropdown.grid(column=1, row=4, padx=5, pady=5)  # default : row=4
 
-# City list
-city_value = tk.StringVar()
-city_value.set(json.loads(config.get("World", "cities"))[1])
-city_list = json.loads(config.get("World", "cities"))
-city_dropdown = tk.OptionMenu(search_canvas, city_value, *city_list)
-city_dropdown.grid(column=1, row=5, padx=5, pady=5)
-
+# Let user filter cities
 city_list = ManageFields(search_canvas, json.loads(config.get("World", "cities")))
-city_list.dropdown.grid(column=1, row=8, padx=5, pady=5)
+city_list.dropdown.grid(column=1, row=5, padx=5, pady=5)
 
 # Item thumbnail
 item_thumbnail = ItemThumbnail(master=result_canvas)
@@ -639,19 +601,17 @@ default_thumbnail_img = "T4_MAIN_SWORD"
 item_thumbnail.update_image(item_id=default_thumbnail_img)
 item_thumbnail.grid(column=1)
 
-"""
-Here, API calls is setup. The following new variables are not strictly necessary, but it makes
-readability and working with much easier. All the variables are objects of the tk.StringVar class and are the objects
-that the user selects with the dropdown menus.
-"""
-item_archetype = archetype_options_value
-item_type = item_type_value  # Item type
-tier_value = tier_value  # Item tier
-enchant_value = enchant_value  # Item Enchantment level
-quality_value = quality_value  # Item Quality
-city = city_value  # Filter what city to search in
+# Here, API calls is setup. The following new variables are not strictly necessary, but it makes
+# readability and working with much easier. All the variables are objects of the tk.StringVar class and are the objects
+# that the user selects with the dropdown menus.
+search_values_list = [archetype_options_value.get(),
+					 item_type_list.dropdown_value.get(),
+					 tier_list.dropdown_value.get(),
+					 enchant_list.dropdown_value.get(),
+					 quality_list.dropdown_value.get(),
+					 city_list.dropdown_value.get()]
 
-api_call = ApiPrice(item_archetype, item_type, tier_value, enchant_value, quality_value, city)
+api_call = ApiPrice(search_values_list)
 
 """Submit button to update item prices and data"""
 submit_button = tk.Button(search_canvas, text="Submit Request",
