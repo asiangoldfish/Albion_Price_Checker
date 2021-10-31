@@ -355,7 +355,7 @@ def loading_screen(master, path):
 	label.pack()
 
 
-def update_item_list(event):
+def update_item_list(event, search_values_list):
 	"""
 	Fetch new items available for specified item archetype and update the item type list to show correct items.
 	Updates item type default before updating the item type list.
@@ -554,6 +554,9 @@ result_item_list = json.loads(config.get("API Results", "retrieve_data"))  # Loa
 result_item_label = SearchLabels(master=result_canvas, column=1)
 result_item_label.result_item_labels()
 
+# A collection of values from all dropdown menus in the program
+search_values_list = list()
+
 # archetype list - List of item archetypes
 archetype_options_list = list()	# Initialize archetype list
 for key in items_list:
@@ -564,7 +567,7 @@ archetype_options_value.set(archetype_options_list[0])  # Sets the default value
 archetype_options_current_value = archetype_options_value.get()  # Used to properly update the default item type.
 
 archetype_options_dropdown = tk.OptionMenu(search_canvas, archetype_options_value, *archetype_options_list,
-                                           command=update_item_list)
+                                           command=update_item_list(event=None, search_values_list=search_values_list))
 archetype_options_dropdown.grid(column=1, row=0, padx=5, pady=5)
 
 # Let user filter item type
@@ -601,9 +604,7 @@ default_thumbnail_img = "T4_MAIN_SWORD"
 item_thumbnail.update_image(item_id=default_thumbnail_img)
 item_thumbnail.grid(column=1)
 
-# Here, API calls is setup. The following new variables are not strictly necessary, but it makes
-# readability and working with much easier. All the variables are objects of the tk.StringVar class and are the objects
-# that the user selects with the dropdown menus.
+# Update list of all dropdown menu items selected by user
 search_values_list = [archetype_options_value.get(),
 					 item_type_list.dropdown_value.get(),
 					 tier_list.dropdown_value.get(),
@@ -611,6 +612,9 @@ search_values_list = [archetype_options_value.get(),
 					 quality_list.dropdown_value.get(),
 					 city_list.dropdown_value.get()]
 
+# Here, API calls is setup. The following new variables are not strictly necessary, but it makes
+# readability and working with much easier. All the variables are objects of the tk.StringVar class and are the objects
+# that the user selects with the dropdown menus.
 api_call = ApiPrice(search_values_list)
 
 """Submit button to update item prices and data"""
