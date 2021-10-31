@@ -4,6 +4,7 @@ This program fetches data from the Albion Online Data Project and displays the p
 import configparser
 import json
 import os.path
+from re import search
 import tkinter as tk
 from datetime import datetime, date
 import urllib.request
@@ -324,40 +325,25 @@ class ManageFields():
 
 	Attributes
 	----------
-	master : tkobject
-		object from the tkinter module
+	master : tkinter object
+		Object from the tkinter module
+	list_items : list
+		List of items to populate dropdown menu with
 	
 	Methods
 	-------
-	set_list(list_items):
-		Populate dropdown menu with items
-
 	set_default_value(default_value):
 		Set default value for the dropdown menu, i.e. the first value to appear
 	"""
-	def __init__(self, master):
-		self.config = SearchConfig()
+	def __init__(self, master, list_items):
+		# self.config = SearchConfig()
+
 		self.master = master  # object to attach dropdown menu to
-		self.dropdown_list = json.loads(config.get("Item Data", "item_quality"))  # list()  # list containing options available of a field
+
+		self.dropdown_list = list_items  # list containing options available of a field
 		self.dropdown_value = tk.StringVar()  # type of item to show on the dropdown menu
-		self.dropdown_value.set = "Hello"  # set default value to avoid error when creating the dropdown menu
-		self.dropdown = tk.OptionMenu(master=self.master, variable=self.dropdown_value, value=self.dropdown_value, values=self.dropdown_list)  # dropdown menu object
-	
-	def set_list(self, list_items):
-		"""
-		Populate dropdown menu with items
-
-		Parameters
-		----------
-		list_items : list
-			List of items to populate dropdown menu with
-
-		Returns
-		-------
-		None
-		"""
-		
-		self.dropdown_list = list_items
+		self.dropdown_value.set(self.dropdown_list[0])  # set default value to avoid error when creating the dropdown menu
+		self.dropdown = tk.OptionMenu(master, self.dropdown_value, *self.dropdown_list)
 	
 	def set_default_value(self, default_value):
 		"""
@@ -634,11 +620,8 @@ quality_value.set(quality_list[0])
 quality_dropdown = tk.OptionMenu(search_canvas, quality_value, *quality_list)
 quality_dropdown.grid(column=1, row=4, padx=5, pady=5)
 
-#quality_list = ManageFields(master=search_canvas)
-#quality_list.set_list(json.loads(config.get("Item Data", "item_quality")))
-#quality_list.dropdown.grid(column=1, row=7, padx=5, pady=5)  # default : row=4
-
-print(json.loads(config.get("Item Data", "item_quality")))
+quality_list = ManageFields(search_canvas, json.loads(config.get("Item Data", "item_quality")))
+quality_list.dropdown.grid(column=1, row=7, padx=5, pady=5)  # default : row=4
 
 # City list
 city_value = tk.StringVar()
@@ -646,6 +629,9 @@ city_value.set(json.loads(config.get("World", "cities"))[1])
 city_list = json.loads(config.get("World", "cities"))
 city_dropdown = tk.OptionMenu(search_canvas, city_value, *city_list)
 city_dropdown.grid(column=1, row=5, padx=5, pady=5)
+
+city_list = ManageFields(search_canvas, json.loads(config.get("World", "cities")))
+city_list.dropdown.grid(column=1, row=8, padx=5, pady=5)
 
 # Item thumbnail
 item_thumbnail = ItemThumbnail(master=result_canvas)
