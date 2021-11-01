@@ -12,6 +12,92 @@ import urllib.request
 import pandas as pd
 from PIL import ImageTk, Image
 
+
+# Generate files that must be included in the program, if they don't exist
+def generate_default_files():
+	"""
+	Generates files that the program depends on. This is a safety measure, so if the files are missing, these
+	files are automatically generated and the program can continue execution.
+
+	Files to be generated: "search_defaults.json", "Formatted_Items_List.py", and "items_selections.py".
+
+	search_defaults.json
+	--------------------
+	Stores default values of item types. Allows users to store their last selected item type, so when
+	they change back to a particular item archetype, the item type appears again.
+
+	Formatted_Items_List.py
+	-----------------------
+	Contains almost all items in the games, their ID and name tag. The ID is used to make searches for the item,
+	while the name tag is displayed as its readable name.
+
+	items_selections.py
+	-------------------
+	A separate file that stores all items and its types in a single file. Makes it easier to program the logic
+	for searching an item, instead of having to deal with all the data that Formatted_Items_List.py contains.
+
+	...
+
+	Returns
+	-------
+	None
+	"""
+
+	# Generate new "search_defaults.json" if does not exist
+	if not os.path.exists("data/search_defaults.json"):
+		defaults_dictionary = {
+                    "Sword": "None",
+                    "Axe": "None",
+                    "Mace": "None",
+                    "Hammer": "None",
+                    "Crossbow": "None",
+                    "Shield ": "None",
+                    "Bow": "None",
+                    "Spear": "None",
+                    "Nature Staff": "None",
+                    "Dagger": "None",
+                    "Quarterstaff": "None",
+                    "Torch": "None",
+                    "Fire Staff": "None",
+                    "Holy Staff": "None",
+                    "Arcane Staff": "None",
+                    "Frost Staff": "None",
+                    "Cursed Staff": "None",
+                    "Tome": "None",
+                    "Shield": "None"
+		}
+		
+		with open("data/search_defaults.json", "w") as json_outfile:
+			json.dump(defaults_dictionary, json_outfile)
+		json_outfile.close()
+	
+	# Generate new "Formatted_Items_List.py" if does not exist
+	# GitHub page into the file.
+	if not os.path.exists("data/Formatted_Items_List.py"):
+		# Open page and store in variable
+		formatted_item_url = "https://raw.githubusercontent.com/asiangoldfish/Albion_Price_Checker/master/data/Formatted_Items_List.py"
+		formatted_object = urllib.request.urlopen(formatted_item_url).read().decode("utf-8")
+		
+		# Outout raw data to file
+		with open("data/Formatted_Items_List.py", "w") as output_file:
+			print(formatted_object, file=output_file)
+			output_file.close()
+	
+	# Generate new "item_selections.py" if does not exist
+	if not os.path.exists("data/item_selections.py"):
+		# Open page and store in variable
+		selections_url = "https://raw.githubusercontent.com/asiangoldfish/Albion_Price_Checker/master/data/item_selections.py"
+		selections_object = urllib.request.urlopen(selections_url).read().decode("utf-8")
+		
+		# Output raw data to file
+		with open("data/item_selections.py", "w") as selections_file:
+			print(selections_object, file=selections_file)
+			selections_file.close()
+
+
+# Generate missing files
+generate_default_files()
+
 from data import item_selections, Formatted_Items_List
 
 # Set default values for labels in search menu
@@ -25,7 +111,6 @@ class SearchConfig(configparser.ConfigParser):
 		super().__init__()
 
 		self.read("data/config.ini")
-
 
 # Create labels tailored for item search and result. Acts as labels for different data about an item
 class SearchLabels(tk.Label):
@@ -517,58 +602,10 @@ def update_user_input():
 	return [archetype_options_value, item_type_value, tier_value, enchant_value, quality_value, city_value]
 
 
-# Generate json file for search default values
-def generate_search_default():
-	"""
-	Search defaults are set so when users choose a new item archetype, their previous item type selection
-	is stored for convinience and better user experience. These default values are stored in a json file.
-	We generate this json file if a current one does not exist. If; however, the file has been messed up
-	and contain invalid keys, we generate a new file and replace the old one.
-
-	...
-
-	Returns
-	-------
-	None
-	"""
-
-	# Check if the file "search_defaults.json" already exists. Generates new one if non-existent
-	if not os.path.exists("data/search_defaults.json"):
-		defaults_dictionary = {
-                    "Sword": "None",
-                    "Axe": "None",
-                    "Mace": "None",
-                    "Hammer": "None",
-                    "Crossbow": "None",
-                    "Shield ": "None",
-                    "Bow": "None",
-                    "Spear": "None",
-                    "Nature Staff": "None",
-                    "Dagger": "None",
-                    "Quarterstaff": "None",
-                    "Torch": "None",
-                    "Fire Staff": "None",
-                    "Holy Staff": "None",
-                    "Arcane Staff": "None",
-                    "Frost Staff": "None",
-                    "Cursed Staff": "None",
-                    "Tome": "None",
-                    "Shield": "None"
-		}
-
-		with open("data/search_defaults.json", "w") as outfile:
-			json.dump(defaults_dictionary, outfile)
-
 """
 Configuration related variables
 """
 config = SearchConfig()
-
-"""
-JSON related operations
-"""
-# Ensure that search defaults json file exists and is valid
-generate_search_default()
 
 """
 Developer tools to test features during development.
