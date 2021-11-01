@@ -36,6 +36,11 @@ def generate_default_files():
 	A separate file that stores all items and its types in a single file. Makes it easier to program the logic
 	for searching an item, instead of having to deal with all the data that Formatted_Items_List.py contains.
 
+	config.ini
+	----------
+	This file is used to set the name of labels in the app. Putting them all in a config file makes it easier
+	to maintain the code.
+
 	...
 
 	Returns
@@ -44,7 +49,9 @@ def generate_default_files():
 	"""
 
 	# Generate new "search_defaults.json" if does not exist
-	if not os.path.exists("data/search_defaults.json"):
+	defaults_dictionary_file_path = "data/search_defaults.json"
+
+	if not os.path.exists(defaults_dictionary_file_path):
 		defaults_dictionary = {
                     "Sword": "None",
                     "Axe": "None",
@@ -67,32 +74,49 @@ def generate_default_files():
                     "Shield": "None"
 		}
 		
-		with open("data/search_defaults.json", "w") as json_outfile:
+		with open(defaults_dictionary_file_path, "w") as json_outfile:
 			json.dump(defaults_dictionary, json_outfile)
 		json_outfile.close()
 	
 	# Generate new "Formatted_Items_List.py" if does not exist
 	# GitHub page into the file.
-	if not os.path.exists("data/Formatted_Items_List.py"):
+	formatted_item_file_path = "data/Formatted_Items_List.py"
+
+	if not os.path.exists(formatted_item_file_path):
 		# Open page and store in variable
 		formatted_item_url = "https://raw.githubusercontent.com/asiangoldfish/Albion_Price_Checker/master/data/Formatted_Items_List.py"
 		formatted_object = urllib.request.urlopen(formatted_item_url).read().decode("utf-8")
 		
 		# Outout raw data to file
-		with open("data/Formatted_Items_List.py", "w") as output_file:
+		with open(formatted_item_file_path, "w") as output_file:
 			print(formatted_object, file=output_file)
 			output_file.close()
 	
 	# Generate new "item_selections.py" if does not exist
-	if not os.path.exists("data/item_selections.py"):
+	selections_file_path = "data/item_selections.py"
+
+	if not os.path.exists(selections_file_path):
 		# Open page and store in variable
 		selections_url = "https://raw.githubusercontent.com/asiangoldfish/Albion_Price_Checker/master/data/item_selections.py"
 		selections_object = urllib.request.urlopen(selections_url).read().decode("utf-8")
 		
 		# Output raw data to file
-		with open("data/item_selections.py", "w") as selections_file:
+		with open(selections_file_path, "w") as selections_file:
 			print(selections_object, file=selections_file)
 			selections_file.close()
+	
+	# Generate new "config.ini" if does not exist
+	config_file_path = "data/config.ini"
+
+	if not os.path.exists(config_file_path):
+		# Open page and store in variable
+		config_url = "https://raw.githubusercontent.com/asiangoldfish/Albion_Price_Checker/master/data/config.ini"
+		config_object = urllib.request.urlopen(config_url).read().decode("utc-8")
+
+		# Output raw data to file
+		with open("data/config.ini") as config_file:
+			print(config_object, file=config_file)
+			config_file.close()
 
 
 # Generate missing files
