@@ -3,3 +3,4 @@ venv/
 .ipynb_checkpoints
 .idea
 img/item_img.png
+data/search_defaults.json
