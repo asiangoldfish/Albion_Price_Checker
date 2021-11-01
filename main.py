@@ -394,7 +394,6 @@ def update_item_list(archetype_object, equip_list):
 
 	archetype_current = archetype_object.dropdown_value.get()
 	archetype_previous = archetype_object.dropdown_current
-	print(f"Previous: {archetype_previous}\nCurrent: {archetype_current}\n")
 
 	# Currently selected item type in the item type dropdown menu
 	current_item_type = item_type_list.dropdown_value.get()
@@ -518,10 +517,58 @@ def update_user_input():
 	return [archetype_options_value, item_type_value, tier_value, enchant_value, quality_value, city_value]
 
 
+# Generate json file for search default values
+def generate_search_default():
+	"""
+	Search defaults are set so when users choose a new item archetype, their previous item type selection
+	is stored for convinience and better user experience. These default values are stored in a json file.
+	We generate this json file if a current one does not exist. If; however, the file has been messed up
+	and contain invalid keys, we generate a new file and replace the old one.
+
+	...
+
+	Returns
+	-------
+	None
+	"""
+
+	# Check if the file "search_defaults.json" already exists. Generates new one if non-existent
+	if not os.path.exists("data/search_defaults.json"):
+		defaults_dictionary = {
+                    "Sword": "None",
+                    "Axe": "None",
+                    "Mace": "None",
+                    "Hammer": "None",
+                    "Crossbow": "None",
+                    "Shield ": "None",
+                    "Bow": "None",
+                    "Spear": "None",
+                    "Nature Staff": "None",
+                    "Dagger": "None",
+                    "Quarterstaff": "None",
+                    "Torch": "None",
+                    "Fire Staff": "None",
+                    "Holy Staff": "None",
+                    "Arcane Staff": "None",
+                    "Frost Staff": "None",
+                    "Cursed Staff": "None",
+                    "Tome": "None",
+                    "Shield": "None"
+		}
+
+		with open("data/search_defaults.json", "w") as outfile:
+			json.dump(defaults_dictionary, outfile)
+
 """
 Configuration related variables
 """
 config = SearchConfig()
+
+"""
+JSON related operations
+"""
+# Ensure that search defaults json file exists and is valid
+generate_search_default()
 
 """
 Developer tools to test features during development.
