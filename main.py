@@ -111,10 +111,10 @@ def generate_default_files():
 	if not os.path.exists(config_file_path):
 		# Open page and store in variable
 		config_url = "https://raw.githubusercontent.com/asiangoldfish/Albion_Price_Checker/master/data/config.ini"
-		config_object = urllib.request.urlopen(config_url).read().decode("utc-8")
+		config_object = urllib.request.urlopen(config_url).read().decode("utf-8")
 
 		# Output raw data to file
-		with open("data/config.ini") as config_file:
+		with open("data/config.ini", "w") as config_file:
 			print(config_object, file=config_file)
 			config_file.close()
 
