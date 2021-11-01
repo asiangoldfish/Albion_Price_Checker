@@ -4,6 +4,7 @@ This program fetches data from the Albion Online Data Project and displays the p
 import configparser
 import json
 import os.path
+from re import search
 import tkinter as tk
 from datetime import datetime, date
 import urllib.request
@@ -13,15 +14,21 @@ from PIL import ImageTk, Image
 
 from data import item_selections, Formatted_Items_List
 
-
-class MyConfig(configparser.ConfigParser):
+# Set default values for labels in search menu
+class SearchConfig(configparser.ConfigParser):
+	"""
+	Enables opening and instantiating config files in an easy and simple way.
+	Also enables scalability, including already existing objects. Using Replace
+	features in IDEs, existing codes can be edited to work with scalability.
+	"""
 	def __init__(self):
 		super().__init__()
 
 		self.read("data/config.ini")
 
 
-class MyLabels(tk.Label):
+# Create labels tailored for item search and result. Acts as labels for different data about an item
+class SearchLabels(tk.Label):
 	def __init__(self, master=None, column=0, row=0):
 		super().__init__()
 		self.master = master
@@ -163,48 +170,47 @@ class ItemThumbnail(tk.Label):
 class ApiPrice:
 	# This class takes care of user input and converting them into a request sent to the Albion Data Project server. Also updates
 	# labels with results from the server.
-	def __init__(self, item_category, item_branch, tier, enchantment, quality_level, city_val):
+	def __init__(self, search_values_list):
 		# Variables needed to find the id of the user selected item
-		self.item_archetype = item_category.get()
-		self.item_type = item_branch.get()
-		self.tier_value = tier.get()
-		self.enchant_value = enchantment.get()
-		self.quality_value = quality_level.get()
+		self.values_list = search_values_list
 
 		# Base URL for the API call
 		self.base_url = "https://www.albion-online-data.com/api/v2/stats/Prices/"  # URL of the API without queries
-		self.city = city_val.get()  # Filter what city to search the item in
 
 		# Variables used to populate the result labels.
 		self.item_id = self.get_item_id()
 
 	def update_class_attributes(self):
 		"""
-		This class uses global vars to fetch data from the outer scope, updating all class attributes used
-		to make the API call.
+		Update class attributes
+		
+		...
+
+		Returns
+		-------
+		None
 		"""
-		global archetype_options_value, item_type_value, tier_value, enchant_value, quality_value, city_value
-		self.item_archetype = archetype_options_value.get()
-		self.item_type = item_type.get()
-		self.tier_value = tier_value.get()
-		self.enchant_value = enchant_value.get()
-		self.quality_value = quality_value.get()
-		self.city = city.get()
-		self.item_id = self.get_item_id()
+		self.values_list = search_values_list
+		self.item_id = self.get_item_id()		
 
 	def get_item_id(self):
 		"""
-		Puts together item name, tier and enchantment level and converts it to the
+		Put together item name, tier and enchantment level and convert it to the
 		matching item_id.
+
+		...
+
+		Returns
+		-------
+		None
 		"""
 		# Gets the values of the user inputs
-		input_name = self.item_type
-		input_tier = self.tier_value
-		input_enchant = self.enchant_value
+		input_name = self.values_list[1]  # item type
+		input_tier = self.values_list[2]  # tier level
+		input_enchant = self.values_list[3]  # enchant level
 
-		"""In the following code blocks, the item_tier will be identified"""
-
-		# Convert tier into rarity name, i.e. "Expert's" instead of T5
+		# Identify item tier
+		# Convert tier into rarity name, for instance "Expert's" instead of T5
 		tiers_list = json.loads(config.get("Item Data", "tier_list"))  # Gets tier list from config file
 		tiers_ranking = json.loads(config.get("Item Data", "tier_ranking"))  # List of the name of each tier
 
@@ -256,10 +262,10 @@ class ApiPrice:
 		"""
 		# Gets the quality ID of the quality name
 		item_quality_list = json.loads(config.get("Item Data", "item_quality"))
-		item_quality_id = item_quality_list.index(self.quality_value)
+		item_quality_id = item_quality_list.index(self.values_list[4])
 
 		# URL for the API call
-		url = f"{self.base_url}{self.item_id}.json?locations={self.city}&qualities={item_quality_id + 1}"
+		url = f"{self.base_url}{self.item_id}.json?locations={self.values_list[5]}&qualities={item_quality_id + 1}"
 		# Datatable with pandas' dataframe
 		pd.set_option("display.max_columns", 11)
 		df = pd.read_json(url)
@@ -308,6 +314,40 @@ class ApiPrice:
 		item_image_object.update_image(update=True, item_id=self.item_id)
 
 
+# Manages different data of an item using dropdown menus. Allows users to interact
+# with these to manipulate their search filter
+class ManageFields():
+	"""
+	Create dropdown menus and fill them with options defined by each instance.
+
+	...
+
+	Attributes
+	----------
+	master : tkinter object
+		Object from the tkinter module
+	list_items : list
+		List of items to populate dropdown menu with
+	default_item_index=0 : int, optional
+		Default item to show in dropdown menu
+	command = func, optional
+		Command to execute when an item has been selected
+	
+	Methods
+	-------
+	"""
+	def __init__(self, master, list_items, default_item_index=0):
+		# self.config = SearchConfig()
+
+		self.master = master  # object to attach dropdown menu to
+
+		self.dropdown_list = list_items  # list containing options available of a field
+		self.dropdown_value = tk.StringVar()  # type of item to show on the dropdown menu
+		self.dropdown_value.set(self.dropdown_list[default_item_index])  # set default value to avoid error when creating the dropdown menu
+		self.dropdown = tk.OptionMenu(master, self.dropdown_value, *self.dropdown_list)
+		
+		self.dropdown_current = ""  # Used by archetype dropdown menu to make default item type value work
+
 
 def center_window(master):
 	master.eval('tk::PlaceWindow . center')  # Center windows
@@ -319,33 +359,74 @@ def loading_screen(master, path):
 	label.pack()
 
 
-def update_item_list(event):
-	"""
-	Fetch new items available for specified item archetype and update the item type list to show correct items.
-	Updates item type default before updating the item type list.
-	"""
-	global item_type_list, item_list_dropdown, archetype_options_current_value
+def update_item_list(archetype_object, equip_list):
+	"""When executed, updates the item type list automatically accordingly to what the item archetype is. Also
+	updates the default item type selected, so when the user changes item archetype, the value of the item type
+	will be saved.
 
-	# Updates item type default by using json file "data/search_defaults.json"
-	update_json("data/search_defaults.json", archetype_options_current_value, item_type_value.get())
-
-	item_list_dropdown["menu"].delete(0, "end")
-
-	# Insert list of new functions
-	item_type_list = list(items_list.get(archetype_options_value.get()))  # Refresh list
-	for name in item_type_list:
-		item_list_dropdown["menu"].add_command(label=name, command=tk._setit(item_type_value, name))
+	The function will store the previously selected archetype. An additional variable is therefore needed to
+	store this value.
+	...
 	
-	# When user selects new item archetype, auto select an item type in the category
-	# from search_defaults.json
+	Parameters
+	----------
+	archetype_object : ManageFields
+		Item archetype instanced object
+
+	equip_list : dict
+		Dictionary with lists of items. Contains the item archetype and their corresponding item types.
+
+	Global Variables
+	----------------
+	item_type_list : ManageFields
+		Class for managing filtering fields for item search. This is needed as the program is unable to
+		take this variable as parameter due to how the program is written.
+	equip_list : dict
+		Dictionary with lists of items. Contains the item archetype and their corresponding item types.
+
+	Returns
+	-------
+	None
+
+	"""
+
+	global item_type_list
+
+	archetype_current = archetype_object.dropdown_value.get()
+	archetype_previous = archetype_object.dropdown_current
+	print(f"Previous: {archetype_previous}\nCurrent: {archetype_current}\n")
+
+	# Currently selected item type in the item type dropdown menu
+	current_item_type = item_type_list.dropdown_value.get()
+
+	# Update item type default in search defauls json file
+	update_json("data/search_defaults.json", archetype_previous, current_item_type)
+
+	# Delete current item type dropdown menu list, so new items can replace the current list
+	item_type_list.dropdown["menu"].delete(0, "end")
+	
+	# Fetch a new list of item types based on the selected item archetype
+	# The new items come from the dictionary in data/item_selections.py
+	new_item_types = list(equip_list.get(archetype_current))
+
+	# Populate item_type_list dropdown menu with new items
+	for name in new_item_types:
+		item_type_list.dropdown["menu"].add_command(label=name, command=tk._setit(item_type_list.dropdown_value, name))
+	
+	# Update the instanced variable of item_type_list class. Without this, the variable will never change
+	# and the function will never update search defaults json file properly.
+	item_type_list.dropdown_list = new_item_types
+
+	# Despite updating the item type dropdown menu, the currently selected value is not updated.
+	# Fetch default value from search default json file and update the currently selected item in item type
+	# dropdown menu.
 	type_json = open("data/search_defaults.json", "r")
 	type_json_object = json.load(type_json)
-	item_type_value.set(type_json_object[archetype_options_value.get()])
+	item_type_list.dropdown_value.set(type_json_object[archetype_current])  # type_json_object[archetype_previous])
 	type_json.close()
 
-	# Updated the current archetype options value, so the next default item type to set
-	# will be updated correctly
-	archetype_options_current_value = archetype_options_value.get()
+	# Update previously selected archetype, so this variable will make the function work next time it's called.
+	archetype_object.dropdown_current = archetype_current
 
 
 def update_json(filepath, key, new_value):
@@ -440,7 +521,7 @@ def update_user_input():
 """
 Configuration related variables
 """
-config = MyConfig()
+config = SearchConfig()
 
 """
 Developer tools to test features during development.
@@ -507,18 +588,22 @@ items_list = item_selections.equip_archetype()
 items_list_keys = list(items_list)
 
 # Make labels for user search
-select_label = MyLabels(search_canvas)
+select_label = SearchLabels(search_canvas)
 select_label.search_labels()
 
 # Make labels for result data
-result_label = MyLabels(result_canvas)
+result_label = SearchLabels(result_canvas)
 result_label.result_labels()
 
 result_item_list = json.loads(config.get("API Results", "retrieve_data"))  # Loads the default values for the labels
-result_item_label = MyLabels(master=result_canvas, column=1)
+result_item_label = SearchLabels(master=result_canvas, column=1)
 result_item_label.result_item_labels()
 
+# A collection of values from all dropdown menus in the program
+search_values_list = list()
+
 # archetype list - List of item archetypes
+"""
 archetype_options_list = list()	# Initialize archetype list
 for key in items_list:
 	archetype_options_list.append(key)	# Append item types into a new list so the drop down menu works
@@ -528,52 +613,56 @@ archetype_options_value.set(archetype_options_list[0])  # Sets the default value
 archetype_options_current_value = archetype_options_value.get()  # Used to properly update the default item type.
 
 archetype_options_dropdown = tk.OptionMenu(search_canvas, archetype_options_value, *archetype_options_list,
-                                           command=update_item_list)
+                                           command=lambda x:update_item_list(archetype_options_value.get(), archetype_options_current_value, items_list))
 archetype_options_dropdown.grid(column=1, row=0, padx=5, pady=5)
+"""
 
-# Item type list - list of item types
-item_type_value = tk.StringVar()  # Value of the selected item in the dropdown menu
+# Let user filter item archetype
+# Fetch all keys from dictionary in item_selections.py and populate archetype
+# dropdown menu using these keys as dropdown menu items.
+archetype_items = list()
+for key in items_list:
+	archetype_items.append(key)
+# Instantiate archetype list
+archetype_list = ManageFields(master=search_canvas, list_items=archetype_items)
+# Store current value of the archetype dropdown menu. Used to store default values for item type dropdown menu
+archetype_list.dropdown_current = archetype_list.dropdown_value.get()
+# Recreate dropdown menu to add command, to dynamically update the item types dropdown menu
+archetype_list.dropdown = tk.OptionMenu(archetype_list.master,
+										archetype_list.dropdown_value,
+										*archetype_list.dropdown_list,
+										command=lambda x:update_item_list(archetype_list,
+																		items_list))
+# Place dropdown menu on a grid-based layout system
+archetype_list.dropdown.grid(column=1, row=0, padx=5, pady=5)
 
-# Set the default value of the dropdown menu
+# Let user filter item type
 type_json = open("data/search_defaults.json", "r")
 type_json_object = json.load(type_json)
-item_type_value.set(type_json_object[archetype_options_value.get()])
 type_json.close()
 
-item_type_list = items_list.get(archetype_options_value.get())  # Gets the available items based on item archetype
+items_for_type = list(items_list.get(archetype_list.dropdown_value.get()))
+item_type_list = ManageFields(search_canvas, items_for_type)
+item_type_list.dropdown.grid(column=1, row=1, padx=5, pady=5)  # default : row=1
 
-item_list_dropdown = tk.OptionMenu(search_canvas, item_type_value, *item_type_list)
-item_list_dropdown.grid(column=1, row=1, padx=5, pady=5)
+# Let user filter item tier
+tier_list = ManageFields(
+	master=search_canvas,
+	list_items=json.loads(config.get("Item Data", "tier_list")),
+	default_item_index=3)
+tier_list.dropdown.grid(column=1, row=2, padx=5, pady=5)
 
-# Item Tier
-tier_value = tk.StringVar()
-tier_value.set(json.loads(config.get("Item Data", "tier_list"))[3])  # Gets the default value from the config file
-tier_list = json.loads(config.get("Item Data", "tier_list"))  # Gets the list of available tiers from config file
+# Let user filter enchantment quality
+enchant_list = ManageFields(search_canvas, json.loads(config.get("Item Data", "enchantment_list")))
+enchant_list.dropdown.grid(column=1, row=3, padx=5, pady=5)
 
-tier_dropdown = tk.OptionMenu(search_canvas, tier_value, *tier_list)
-tier_dropdown.grid(column=1, row=2, padx=5, pady=5)
+# Let user filter item quality
+quality_list = ManageFields(search_canvas, json.loads(config.get("Item Data", "item_quality")))
+quality_list.dropdown.grid(column=1, row=4, padx=5, pady=5)  # default : row=4
 
-# Enchantment list
-enchant_value = tk.StringVar()
-enchant_value.set(json.loads(config.get("Item Data", "enchantment_list"))[0])
-enchantment_list = json.loads(config.get("Item Data", "enchantment_list"))
-
-enchant_dropdown = tk.OptionMenu(search_canvas, enchant_value, *enchantment_list)
-enchant_dropdown.grid(column=1, row=3, padx=5, pady=5)
-
-# Quality list
-quality_value = tk.StringVar()
-quality_list = json.loads(config.get("Item Data", "item_quality"))
-quality_value.set(quality_list[0])
-quality_dropdown = tk.OptionMenu(search_canvas, quality_value, *quality_list)
-quality_dropdown.grid(column=1, row=4, padx=5, pady=5)
-
-# City list
-city_value = tk.StringVar()
-city_value.set(json.loads(config.get("World", "cities"))[1])
-city_list = json.loads(config.get("World", "cities"))
-city_dropdown = tk.OptionMenu(search_canvas, city_value, *city_list)
-city_dropdown.grid(column=1, row=5, padx=5, pady=5)
+# Let user filter cities
+city_list = ManageFields(search_canvas, json.loads(config.get("World", "cities")))
+city_list.dropdown.grid(column=1, row=5, padx=5, pady=5)
 
 # Item thumbnail
 item_thumbnail = ItemThumbnail(master=result_canvas)
@@ -581,19 +670,18 @@ default_thumbnail_img = "T4_MAIN_SWORD"
 item_thumbnail.update_image(item_id=default_thumbnail_img)
 item_thumbnail.grid(column=1)
 
-"""
-Here, API calls is setup. The following new variables are not strictly necessary, but it makes
-readability and working with much easier. All the variables are objects of the tk.StringVar class and are the objects
-that the user selects with the dropdown menus.
-"""
-item_archetype = archetype_options_value
-item_type = item_type_value  # Item type
-tier_value = tier_value  # Item tier
-enchant_value = enchant_value  # Item Enchantment level
-quality_value = quality_value  # Item Quality
-city = city_value  # Filter what city to search in
+# Update list of all dropdown menu items selected by user
+search_values_list = [archetype_list.dropdown_value.get(),
+					 item_type_list.dropdown_value.get(),
+					 tier_list.dropdown_value.get(),
+					 enchant_list.dropdown_value.get(),
+					 quality_list.dropdown_value.get(),
+					 city_list.dropdown_value.get()]
 
-api_call = ApiPrice(item_archetype, item_type, tier_value, enchant_value, quality_value, city)
+# Here, API calls is setup. The following new variables are not strictly necessary, but it makes
+# readability and working with much easier. All the variables are objects of the tk.StringVar class and are the objects
+# that the user selects with the dropdown menus.
+api_call = ApiPrice(search_values_list)
 
 """Submit button to update item prices and data"""
 submit_button = tk.Button(search_canvas, text="Submit Request",
