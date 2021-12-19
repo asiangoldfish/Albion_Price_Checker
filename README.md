@@ -13,14 +13,29 @@ All credits for the data collection goes to the Albion Online Data Project team 
 
 ___
 
-## Installing and Using the Source Code
+## Using the App with Source Code
 
 The repository is currently a little hot mess. However, feel free to explore it.
-The program is written in Python 3.9, but any Python version 3 should work. It has some dependencies not included in the standard library. 
-To quickly install these, use `requirements.txt`.
 
-1. If you don't have pip installed, do that first.
-2. Use the following command in the terminal: `pip install -r requirements.txt`
+1. Install Python 3:
+  ```
+  sudo apt update \
+  sudo apt install python3
+  ```
+2. Install pip:
+  ```
+  sudo apt install python3-pip
+  ```
+3. Using a virtual environment is preferred. Use your virtual environment of your choice or do the following:
+  ```
+  python3 -m venv venv \
+  source venv/bin/activate
+  ```
+4. Install dependencies:
+  ```
+  pip3 install -r requirements.txt` \
+  sudo apt install python3-tk
+  ```
 
 ___
 
