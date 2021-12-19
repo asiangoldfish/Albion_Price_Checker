@@ -19,7 +19,7 @@ The repository is currently a little hot mess. However, feel free to explore it.
 
 1. Install Python 3:
   ```
-  sudo apt update \
+  sudo apt update
   sudo apt install python3
   ```
 2. Install pip:
@@ -28,12 +28,12 @@ The repository is currently a little hot mess. However, feel free to explore it.
   ```
 3. Using a virtual environment is preferred. Use your virtual environment of your choice or do the following:
   ```
-  python3 -m venv venv \
+  python3 -m venv venv
   source venv/bin/activate
   ```
 4. Install dependencies:
   ```
-  pip3 install -r requirements.txt` \
+  pip3 install -r requirements.txt`
   sudo apt install python3-tk
   ```
 
