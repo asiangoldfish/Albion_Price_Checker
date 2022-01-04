@@ -5,12 +5,19 @@ import configparser
 import json
 import os.path
 from re import search
-import tkinter as tk
 from datetime import datetime, date
 import urllib.request
 
-import pandas as pd
-from PIL import ImageTk, Image
+try:
+	import pandas as pd
+	from PIL import ImageTk, Image
+except ModuleNotFoundError as e:
+	exit("Missing modules. Install them with pip install -r requirements.txt")
+
+try:
+	import tkinter as tk
+except ModuleNotFoundError:
+	exit("Missing module tkinter. Install with sudo apt install python3-tkinter")
 
 
 # Generate files that must be included in the program, if they don't exist
